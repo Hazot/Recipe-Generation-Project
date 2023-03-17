@@ -1,0 +1,34 @@
+name: nlg
+channels:
+  - pytorch
+  - nvidia
+  - defaults
+dependencies:
+  - python=3.9
+  - jupyter
+  - h5py
+  - pip:
+    - numpy
+    - cosine_similarity
+    - language-tool-python
+    - textstat
+    - scipy
+    - nltk
+    - jiwer
+    - tqdm
+    - pandas
+    - bs4
+    - dask
+    - matplotlib
+    - tikzplotlib
+    - scikit-learn
+    - numba
+    - gensim
+    - textblob
+    - spacy
+    - scrapy
+    - pymongo
+    - torch
+    - torchvision
+    - torchaudio
+    - transformers
