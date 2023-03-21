@@ -78,11 +78,11 @@ def train(args, train_dataset, model, tokenizer):
     optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=args.warmup_steps, num_training_steps=t_total)
 
-    try:
-        from apex import amp
-    except ImportError:
-        raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use fp16 training.")
-    model, optimizer = amp.initialize(model, optimizer, opt_level="O2")
+    # try:
+    #     from apex import amp
+    # except ImportError:
+    #     raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use fp16 training.")
+    # model, optimizer = amp.initialize(model, optimizer, opt_level="O2")
 
     # Train!
     logger.info("***** Running training *****")
@@ -113,12 +113,15 @@ def train(args, train_dataset, model, tokenizer):
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
 
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
+            # with amp.scale_loss(loss, optimizer) as scaled_loss:
+            #     scaled_loss.backward()
+
+            loss.backward()
 
             tr_loss += loss.item()
-            if (step) % args.gradient_accumulation_steps == 0:
-                torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+            if step % args.gradient_accumulation_steps == 0:
+                # torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+                torch.nn.utils.clip_grad_norm_(optimizer.parameters(), args.max_grad_norm)
                 optimizer.step()
                 scheduler.step()  # Update learning rate schedule
                 model.zero_grad()
@@ -242,13 +245,13 @@ def main():
                         help="Optional input sequence length after tokenization."
                              "The training dataset will be truncated in block of this size for training."
                              "Default to the model max input length for single sentence inputs (take into account special tokens).")
-    parser.add_argument("--do_train", action='store_true',
+    parser.add_argument("--do_train", default=False, type=bool,
                         help="Whether to run training.")
-    parser.add_argument("--do_eval", action='store_true',
+    parser.add_argument("--do_eval", default=False, type=bool,
                         help="Whether to run eval on the dev set.")
-    parser.add_argument("--evaluate_during_training", action='store_true',
+    parser.add_argument("--evaluate_during_training", default=False, type=bool,
                         help="Run evaluation during training at each logging step.")
-    parser.add_argument("--do_lower_case", action='store_true',
+    parser.add_argument("--do_lower_case", default=False, type=bool,
                         help="Set this flag if you are using an uncased model.")
 
     parser.add_argument("--per_gpu_train_batch_size", default=4, type=int,
@@ -276,13 +279,13 @@ def main():
                         help="Log every X updates steps.")
     parser.add_argument('--save_steps', type=int, default=50,
                         help="Save checkpoint every X updates steps.")
-    parser.add_argument("--eval_all_checkpoints", action='store_true',
+    parser.add_argument("--eval_all_checkpoints", default=False, type=bool,
                         help="Evaluate all checkpoints starting with the same prefix as model_name_or_path ending and ending with step number")
-    parser.add_argument("--no_cuda", action='store_true',
+    parser.add_argument("--no_cuda", default=False, type=bool,
                         help="Avoid using CUDA when available")
-    parser.add_argument('--overwrite_output_dir', action='store_true',
+    parser.add_argument('--overwrite_output_dir', default=True, type=bool,
                         help="Overwrite the content of the output directory")
-    parser.add_argument('--overwrite_cache', action='store_true',
+    parser.add_argument('--overwrite_cache', default=False, type=bool,
                         help="Overwrite the cached training and evaluation sets")
     parser.add_argument("--aws_bucket", default="", type=str,
                         help="Whether to upload to specified bucket.")

@@ -7,6 +7,19 @@ This repository uses:
 
 To provide complete pipeline starting with organized and cleaned dataset, and finishing with fine-tuned gpt-2 recipe generator
 
+## Run
+
+Change directory into `generation` 
+```
+cd generation
+```
+
+
+and then run:
+```
+python lm_finetuning_gpu.py --train_data_file unsupervised_train.txt --output_dir models/ --model_name_or_path gpt2 --tokenizer_name gpt2 --do_train True
+```
+
 ## Data
 Recipe1M dataset is used and enhanced with following tags:
 * <TITLE_START>

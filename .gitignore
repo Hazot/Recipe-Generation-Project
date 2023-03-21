@@ -276,4 +276,8 @@ pyrightconfig.json
 
 # Start of user-based settings
 data/
-models/
+generation/models/
+generation/runs/
+*.h5
+unsupervised_train.txt
+unsupervised_test.txt

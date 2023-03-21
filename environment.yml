@@ -7,6 +7,7 @@ dependencies:
   - python=3.9
   - jupyter
   - h5py
+  - conda-forge::tensorboard
   - pip:
     - numpy
     - cosine_similarity
@@ -28,6 +29,7 @@ dependencies:
     - spacy
     - scrapy
     - pymongo
+    - boto3
     - torch
     - torchvision
     - torchaudio
