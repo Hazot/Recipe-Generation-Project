@@ -119,7 +119,7 @@ class DataTrainingArguments:
 
 class H5Dataset(Dataset):
     def __init__(self, tokenizer, file_path='train', block_size=512):
-        cached_features_file = "unsupervised.h5"
+        cached_features_file = "../data/unsupervised.h5"
 
         logger.info("Loading features from cached file %s", cached_features_file)
         with h5py.File(cached_features_file, 'r') as f:

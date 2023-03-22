@@ -36,7 +36,7 @@ def tardir(path, tar_name):
 
 class TextDataset(Dataset):
     def __init__(self, file_path='train'):
-        cached_features_file = "unsupervised.h5"
+        cached_features_file = "../data/unsupervised.h5"
 
         logger.info("Loading features from cached file %s", cached_features_file)
         self.file = h5py.File(cached_features_file, 'r')

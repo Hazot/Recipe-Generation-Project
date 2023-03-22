@@ -7,8 +7,6 @@ import argparse
 import glob
 import logging
 import os
-import random
-import gc
 import h5py
 import boto3
 import shutil
@@ -16,7 +14,6 @@ import shutil
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset, SequentialSampler, RandomSampler
-from torch.utils.data.distributed import DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm, trange
 
@@ -33,7 +30,7 @@ def tardir(path, tar_name):
 
 class TextDataset(Dataset):
     def __init__(self, tokenizer, file_path='train', block_size=512):
-        cached_features_file = "unsupervised.h5"
+        cached_features_file = "../data/unsupervised.h5"
 
         logger.info("Loading features from cached file %s", cached_features_file)
         with h5py.File(cached_features_file, 'r') as f:
@@ -121,7 +118,7 @@ def train(args, train_dataset, model, tokenizer):
             tr_loss += loss.item()
             if step % args.gradient_accumulation_steps == 0:
                 # torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
-                torch.nn.utils.clip_grad_norm_(optimizer.parameters(), args.max_grad_norm)
+                torch.nn.utils.clip_grad_norm_([optimizer.param_groups[i] for range(len(optimizer.param_groups))], args.max_grad_norm)
                 optimizer.step()
                 scheduler.step()  # Update learning rate schedule
                 model.zero_grad()

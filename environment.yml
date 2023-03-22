@@ -34,3 +34,4 @@ dependencies:
     - torchvision
     - torchaudio
     - transformers
+    - hydra-core
