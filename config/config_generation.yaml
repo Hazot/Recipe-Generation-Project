@@ -1,0 +1,27 @@
+data:
+    create_txt_files: False
+    create_h5_file: False
+    train_data_file: data/unsupervised_train.txt  # "The input training data file (a text file)."
+    output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
+    eval_data_file: None  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    output_dir_to_eval: None  # "The output directory where the model predictions checkpoints to eval are."
+
+alg:
+    model_type: gpt2  # "Model type selected in the list"
+    model_name_or_path: '/models/checkpoint-final/'  # "The model checkpoint for weights initialization., Use '/' before the first directory."
+    prompt: 'ham, egg, butter, milk, leek, sour creme, peanut butter, bread'
+    length: 200
+    temperature: 1.0
+    top_k: 0
+    top_p: 0.9
+    no_cuda: False  # "Avoid using CUDA when available"
+    n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
+
+log:
+    seed: 1234
+    logging_steps: 50  # "Log every X updates steps."
+    save_steps: 50000  # "Save checkpoint every X updates steps. (default=50, which is way too much data)"
+    eval_all_checkpoints: False  # "Evaluate all checkpoints starting with the same prefix as model_name_or_path ending and ending with step number"
+    overwrite_output_dir: True  # "Overwrite the content of the output directory"
+    overwrite_cache: False  # "Overwrite the cached training and evaluation sets"
+    aws_bucket: ''  # "Whether to upload to specified bucket."
