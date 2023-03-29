@@ -149,7 +149,15 @@ def main(params: DictConfig):
         title = "# " + recipe_n_title[1].replace("<TITLE_END>", "") + " #\n"
         markdown = recipe_n_title[0].replace("<INPUT_START>", "## Input ingredients ##\n`").replace("<INPUT_END>", "`\n")
         markdown = markdown.replace("<NEXT_INPUT>", "`\n`").replace("<INGR_START>", "## Ingredients ##\n* ").replace("<NEXT_INGR>", "\n* ").replace("<INGR_END>", "\n")
-        markdown = markdown.replace("<INSTR_START>", "## Instructions ##\n1) ").replace("<NEXT_INSTR>", "\n1) ").replace("<INSTR_END>", "\n")
+        markdown = markdown.replace("<INSTR_START>", "## Instructions ##\n1) ")
+
+        # Count each instructions
+        count = 2
+        while markdown.find("<NEXT_INSTR>") != -1:
+            markdown = markdown.replace("<NEXT_INSTR>", f"\n{count}) ", 1)
+            count +=1
+
+        markdown = markdown.replace("<INSTR_END>", "\n")
         markdown = re.sub("$ +#", "#", markdown)
         markdown = re.sub("( +`|` +)", "`", markdown)
         print(title+markdown)

@@ -10,8 +10,8 @@ alg:
     model_type: gpt2  # "Model type selected in the list"
     model_name_or_path: '/models/checkpoint-final/'  # "The model checkpoint for weights initialization., Use '/' before the first directory."
     prompt: 'ham, egg, butter, milk, leek, sour creme, peanut butter, bread'
-    length: 200
-    temperature: 1.0
+    length: 600
+    temperature: 0.9
     top_k: 0
     top_p: 0.9
     no_cuda: False  # "Avoid using CUDA when available"
