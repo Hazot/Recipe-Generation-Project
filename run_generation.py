@@ -19,6 +19,7 @@
 
 import argparse
 import logging
+import json
 from tqdm import trange
 
 import torch
@@ -123,47 +124,57 @@ def main(params: DictConfig):
     elif params['alg']['length'] < 0:
         params['alg']['length'] = MAX_LENGTH  # avoid infinite loop
 
-    while True:
-        raw_text = params['alg']['prompt'] if params['alg']['prompt'] else input("Comma-separated ingredients, semicolon to close the list >>> ")
-        prepared_input = '<RECIPE_START> <INPUT_START> ' + raw_text.replace(',', ' <NEXT_INPUT> ').replace(';', ' <INPUT_END>')
-        context_tokens = tokenizer.encode(prepared_input)
-        out = sample_sequence(
-            model=model,
-            context=context_tokens,
-            tokenizer=tokenizer,
-            length=params['alg']['length'],
-            temperature=params['alg']['temperature'],
-            top_k=params['alg']['top_k'],
-            top_p=params['alg']['top_p'],
-            device=device
-        )
-        out = out[0, len(context_tokens):].tolist()
-        text = tokenizer.decode(out, clean_up_tokenization_spaces=True)
-        if "<RECIPE_END>" not in text:
-            print(text)
-            print("Failed to generate, recipe's too long")
-            continue
-        full_text = prepared_input + text
-        markdown = re.sub("<RECIPE_(START|END)>", "", full_text)
-        recipe_n_title = markdown.split("<TITLE_START>")
-        title = "# " + recipe_n_title[1].replace("<TITLE_END>", "") + " #\n"
-        markdown = recipe_n_title[0].replace("<INPUT_START>", "## Input ingredients ##\n`").replace("<INPUT_END>", "`\n")
-        markdown = markdown.replace("<NEXT_INPUT>", "`\n`").replace("<INGR_START>", "## Ingredients ##\n* ").replace("<NEXT_INGR>", "\n* ").replace("<INGR_END>", "\n")
-        markdown = markdown.replace("<INSTR_START>", "## Instructions ##\n1) ")
+    results = []
+    for _ in range(params['alg']['num_promps']):
 
-        # Count each instructions
-        count = 2
-        while markdown.find("<NEXT_INSTR>") != -1:
-            markdown = markdown.replace("<NEXT_INSTR>", f"\n{count}) ", 1)
-            count +=1
+        while True:
+            raw_text = params['alg']['prompt'] if params['alg']['prompt'] else input("Comma-separated ingredients, semicolon to close the list >>> ")
+            prepared_input = '<RECIPE_START> <INPUT_START> ' + raw_text.replace(',', ' <NEXT_INPUT> ').replace(';', ' <INPUT_END>')
+            context_tokens = tokenizer.encode(prepared_input)
+            out = sample_sequence(
+                model=model,
+                context=context_tokens,
+                tokenizer=tokenizer,
+                num_samples=params['alg']['num_samples'],
+                length=params['alg']['length'],
+                temperature=params['alg']['temperature'],
+                top_k=params['alg']['top_k'],
+                top_p=params['alg']['top_p'],
+                device=device
+            )
+            out = out[0, len(context_tokens):].tolist()
+            text = tokenizer.decode(out, clean_up_tokenization_spaces=True)
+            if "<RECIPE_END>" not in text:
+                print(text)
+                print("Failed to generate, recipe's too long")
+                continue
+            full_text = prepared_input + text
+            markdown = re.sub("<RECIPE_(START|END)>", "", full_text)
+            recipe_n_title = markdown.split("<TITLE_START>")
+            title = "# " + recipe_n_title[1].replace("<TITLE_END>", "") + " #\n"
+            markdown = recipe_n_title[0].replace("<INPUT_START>", "## Input ingredients ##\n`").replace("<INPUT_END>", "`\n")
+            markdown = markdown.replace("<NEXT_INPUT>", "`\n`").replace("<INGR_START>", "## Ingredients ##\n* ").replace("<NEXT_INGR>", "\n* ").replace("<INGR_END>", "\n")
+            markdown = markdown.replace("<INSTR_START>", "## Instructions ##\n1) ")
 
-        markdown = markdown.replace("<INSTR_END>", "\n")
-        markdown = re.sub("$ +#", "#", markdown)
-        markdown = re.sub("( +`|` +)", "`", markdown)
-        print(title+markdown)
-        if params['alg']['prompt']:
-            break
-    return text
+            # Count each instruction
+            count = 2
+            while markdown.find("<NEXT_INSTR>") != -1:
+                markdown = markdown.replace("<NEXT_INSTR>", f"\n{count}) ", 1)
+                count +=1
+
+            markdown = markdown.replace("<INSTR_END>", "\n")
+            markdown = re.sub("$ +#", "#", markdown)
+            markdown = re.sub("( +`|` +)", "`", markdown)
+            print(title+markdown)
+            if params['alg']['prompt']:
+                break
+        
+        results.append(title + markdown)
+    
+    with open('results.json', 'w') as f:
+        json.dump(results, f, indent=4)
+    
+    return results
 
 
 if __name__ == '__main__':

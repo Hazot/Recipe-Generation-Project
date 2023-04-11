@@ -24,6 +24,14 @@ Afterwards, run:
 conda env create -f environment.yml
 ```
 
+## Generate recipe
+
+```
+python run_generation.py
+```
+
+
+
 ## Authors
 
 - [@Mathieu Peloquin](https://www.github.com/mathieupelo)

@@ -3,17 +3,19 @@ data:
     create_h5_file: False
     train_data_file: data/unsupervised_train.txt  # "The input training data file (a text file)."
     output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
-    eval_data_file: None  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    eval_data_file: data/unsupervised_test.txt   # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
     output_dir_to_eval: None  # "The output directory where the model predictions checkpoints to eval are."
 
 alg:
     model_type: gpt2  # "Model type selected in the list"
     model_name_or_path: '/models/checkpoint-final/'  # "The model checkpoint for weights initialization., Use '/' before the first directory."
-    prompt: 'ham, egg, butter, milk, leek, sour creme, peanut butter, bread'
-    length: 600
-    temperature: 0.9
-    top_k: 0
-    top_p: 0.9
+    prompt: 'ham, egg, butter, milk, leek, sour creme, bread, sausage'
+    num_promps: 5  # "Number of prompts to generate."
+    num_samples: 1  # "Number of samples to generate."
+    length: 600  # "Number of tokens to generate."
+    temperature: 1.0  # "Close to 0 is more greedy, close to 1 is more random"
+    top_k: 0  # "The number of highest probability vocabulary tokens to keep for top-k-filtering."
+    top_p: 0.9  # "The cumulative probability of parameter highest probability vocabulary tokens to keep for nucleus sampling."
     no_cuda: False  # "Avoid using CUDA when available"
     n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
 

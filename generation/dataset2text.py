@@ -16,10 +16,10 @@ def dataset2text():
     df = pd.read_csv(dataset_path)
     print('full_dataset df.shape:', df.shape)
 
-    remove1 = df.loc[df.title.map(lambda x: len(x)<4 )]
-    remove2 = df.loc[df.ingredients.map(lambda x: len(x)<2)]
-    remove3 = df.loc[df.directions.map(lambda x: len(x) < 2 or len(''.join(x)) < 30)]
-    remove4 = df.loc[df.directions.map(lambda x: re.search('(step|mix all)', ''.join(str(x)), re.IGNORECASE)!=None)]
+    remove1 = df.loc[df.title.map(lambda x: len(x)<4 )]  # remove recipe with titles with less than 4 characters
+    remove2 = df.loc[df.ingredients.map(lambda x: len(x)<2)]  # remove recipe with less than 2 ingredients
+    remove3 = df.loc[df.directions.map(lambda x: len(x) < 2 or len(''.join(x)) < 30)]  # remove recipe with less than 2 directions or less than 30 characters
+    remove4 = df.loc[df.directions.map(lambda x: re.search('(step|mix all)', ''.join(str(x)), re.IGNORECASE)!=None)]  # remove recipe with directions that contain 'step' or 'mix all'
 
     print('len of removed lines:', len(remove3)+len(remove2)+len(remove1)+len(remove4))
 
@@ -58,5 +58,5 @@ def dataset2text():
                   " <NEXT_INSTR> ".join(directions) + " <INSTR_END> <TITLE_START> " + title + " <TITLE_END> <RECIPE_END>"
                 f.write("{}\n".format(res))
 
-    df_to_plaintext_file(train, local_path + '/data/unsupervised_train.txt')
-    df_to_plaintext_file(test, local_path + '/data/unsupervised_test.txt')
+    df_to_plaintext_file(train, local_path + '/data/unsupervised_train_TEST.txt')
+    df_to_plaintext_file(test, local_path + '/data/unsupervised_test_TEST.txt')

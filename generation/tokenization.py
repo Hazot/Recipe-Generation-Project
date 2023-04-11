@@ -27,7 +27,7 @@ def tokenize():
 
     tokenizer.add_special_tokens(special_tokens)
 
-    end_token_id = tokenizer.convert_tokens_to_ids(["<RECIPE_END>"])[0]
+    end_token_id = tokenizer.convert_tokens_to_ids(["< RECIPE_END>"])[0]
 
     original_cwd = get_original_cwd()
 
