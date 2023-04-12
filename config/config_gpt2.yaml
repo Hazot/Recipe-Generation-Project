@@ -16,7 +16,7 @@ alg:
     tokenizer_name: gpt2  # "Optional pretrained tokenizer name or path if not the same as model_name_or_path"
     do_train: True  # "Whether to run training."
     do_eval: True  # "Whether to run eval on the dev set."
-    evaluate_during_training: False  # "Run evaluation during training at each logging step."
+    evaluate_during_training: True  # "Run evaluation during training at each save step."
     do_lower_case: False  # "Set this flag if you are using an uncased model."
     per_gpu_train_batch_size: 2  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
     per_gpu_eval_batch_size: 2  # "Batch size per GPU/CPU for evaluation. (from paper, gpt-2 was 4)"
@@ -32,8 +32,8 @@ alg:
     warmup_steps: 0  # "Linear warmup over warmup_steps."
 
 log:
-    logging_steps: 50  # "Log every X updates steps."
-    save_steps: 50000  # "Save checkpoint every X updates steps. (default=50, which is way too much data)"
+    logging_steps: 1  # "Log every X updates steps."
+    save_steps: 100  # "Save checkpoint every X updates steps. (default=50, which is way too much data)"
     eval_all_checkpoints: False  # "Evaluate all checkpoints starting with the same prefix as model_name_or_path ending and ending with step number"
     overwrite_output_dir: True  # "Overwrite the content of the output directory"
     overwrite_cache: False  # "Overwrite the cached training and evaluation sets"

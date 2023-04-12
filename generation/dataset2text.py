@@ -58,5 +58,5 @@ def dataset2text():
                   " <NEXT_INSTR> ".join(directions) + " <INSTR_END> <TITLE_START> " + title + " <TITLE_END> <RECIPE_END>"
                 f.write("{}\n".format(res))
 
-    df_to_plaintext_file(train, local_path + '/data/unsupervised_train_TEST.txt')
-    df_to_plaintext_file(test, local_path + '/data/unsupervised_test_TEST.txt')
+    df_to_plaintext_file(train, local_path + '/data/unsupervised_train.txt')
+    df_to_plaintext_file(test, local_path + '/data/unsupervised_test.txt')

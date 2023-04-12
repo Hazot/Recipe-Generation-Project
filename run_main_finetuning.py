@@ -20,13 +20,11 @@ def main(params: DictConfig):
     logger.info("Training/evaluation parameters %s", params)
 
     # add if os.path not exists or params['data']['create_txt_files'], do dataset2text()
-    # if params['data']['create_txt_files']:
-    if True:
+    if params['data']['create_txt_files']:
         dataset2text()  # takes 5 minutes
 
     # add if os.path not exists or params['data']['create_h5_file'], do tokenize()
-    # if params['data']['create_h5_file']:
-    if False:
+    if params['data']['create_h5_file']:
         tokenize()  # takes 45 minutes
 
     results = trainer(params=params)

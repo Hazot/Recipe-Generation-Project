@@ -186,7 +186,7 @@ def train(params, train_dataset, model, tokenizer, device):
     return global_step, tr_loss / global_step
 
 
-def evaluate(params, model, tokenizer, device, prefix="", summary_writer=None, global_step=None):
+def evaluate(params, model, tokenizer, device, prefix=""):
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_output_dir = params['data']['output_dir']
 
@@ -208,8 +208,6 @@ def evaluate(params, model, tokenizer, device, prefix="", summary_writer=None, g
     nb_eval_steps = 0
     model.eval()
 
-    start = time.time()
-
     for batch in tqdm(eval_dataloader, desc="Evaluating"):
         batch = batch.to(device)
 
@@ -221,11 +219,6 @@ def evaluate(params, model, tokenizer, device, prefix="", summary_writer=None, g
 
     eval_loss = eval_loss / nb_eval_steps
     perplexity = torch.exp(torch.tensor(eval_loss))
-
-    summary_writer.add_scalar('Evaluation Loss', eval_loss, global_step)
-    summary_writer.add_scalar('perplexity', perplexity, global_step)
-    summary_writer.add_scalar('Time', time.time() - start, global_step)
-    summary_writer.add_scalar("nb_eval_steps", nb_eval_steps, global_step)
 
     result = {
         "perplexity": perplexity
