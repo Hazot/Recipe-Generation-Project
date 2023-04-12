@@ -28,13 +28,13 @@ alg:
     adam_epsilon: 1e-8  # "Epsilon for Adam optimizer."
     max_grad_norm: 1.0  # "Max gradient norm."
     num_train_epochs: 1.0  # "Total number of training epochs to perform."
-    max_steps: -1  # "If > 0: set total number of training steps to perform. Override num_train_epochs."
+    max_steps: 100  # "If > 0: set total number of training steps to perform. Override num_train_epochs."
     warmup_steps: 0  # "Linear warmup over warmup_steps."
 
 log:
     logging_steps: 1  # "Log every X updates steps."
-    save_steps: 100  # "Save checkpoint every X updates steps. (default=50, which is way too much data)"
-    eval_all_checkpoints: False  # "Evaluate all checkpoints starting with the same prefix as model_name_or_path ending and ending with step number"
+    save_steps: 50000  # "Save checkpoint every X updates steps. (default=10000, which is way too much data)"
+    eval_all_checkpoints: True  # "Evaluate all checkpoints starting with the same prefix as model_name_or_path ending and ending with step number"
     overwrite_output_dir: True  # "Overwrite the content of the output directory"
     overwrite_cache: False  # "Overwrite the cached training and evaluation sets"
     aws_bucket: ''  # "Whether to upload to specified bucket."

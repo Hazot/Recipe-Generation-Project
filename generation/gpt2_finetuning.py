@@ -61,9 +61,8 @@ def load_and_cache_examples(params, tokenizer, evaluate=False):
     return dataset
 
 
-def train(params, train_dataset, model, tokenizer, device):
+def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
     """ Train the model """
-    tb_writer = SummaryWriter()
 
     params['alg']['train_batch_size'] = params['alg']['per_gpu_train_batch_size'] * max(1, params['alg']['n_gpu'])
     train_sampler = RandomSampler(train_dataset)
@@ -78,7 +77,7 @@ def train(params, train_dataset, model, tokenizer, device):
                   params['alg']['num_train_epochs']
 
     # Prepare optimizer and schedule (linear warmup and decay)
-    no_decay = ['bias', 'LayerNorm.weight']
+    no_decay = ['bias', 'LayerNorm.weight']  # Types of parameters that do not decay
     optimizer_grouped_parameters = [
         {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
          'weight_decay': params['alg']['weight_decay']},
@@ -92,7 +91,8 @@ def train(params, train_dataset, model, tokenizer, device):
 
     # Train!
     logger.info("***** Running training *****")
-    logger.info("  Num examples = %d", len(train_dataset))
+    logger.info("  Num examples = %d", len(train_dataset),
+                "  Num of recipes divided into blocks of tokens of size=", params['alg']['block_size'])
     logger.info("  Num Epochs = %d", params['alg']['num_train_epochs'])
     logger.info("  Instantaneous batch size per GPU = %d", params['alg']['per_gpu_train_batch_size'])
     logger.info("  Total train batch size = %d",
@@ -109,7 +109,8 @@ def train(params, train_dataset, model, tokenizer, device):
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=False)
         for step, batch in enumerate(epoch_iterator):
             if step % params['log']['logging_steps'] == 0:
-                logger.info(f'Step: {step} | Time: {round(time.time() - start, 3)} s')
+                # logger.info(f'Step: {step} | Time: {round(time.time() - start, 3)} s')
+                lol = round(time.time() - start)
             inputs, labels = (batch, batch)
             inputs = inputs.to(device)
             labels = labels.to(device)
@@ -161,7 +162,7 @@ def train(params, train_dataset, model, tokenizer, device):
                     tokenizer.save_pretrained(output_dir)
                     logger.info("Saving model checkpoint to %s", output_dir)
                     if params['alg']['evaluate_during_training']:  # Only evaluate when single GPU otherwise metrics may not average well
-                        results = evaluate(params, model, tokenizer, device)
+                        results = evaluate(params, model, tokenizer, device, prefix=str(global_step), tb_writer=tb_writer)
                         for key, value in results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
                     if params['log']['aws_bucket']:
@@ -181,12 +182,10 @@ def train(params, train_dataset, model, tokenizer, device):
             train_iterator.close()
             break
 
-    tb_writer.close()
-
     return global_step, tr_loss / global_step
 
 
-def evaluate(params, model, tokenizer, device, prefix="", summary_writer=None, global_step=None):
+def evaluate(params, model, tokenizer, device, prefix="", tb_writer=None):
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_output_dir = params['data']['output_dir']
 
@@ -204,7 +203,7 @@ def evaluate(params, model, tokenizer, device, prefix="", summary_writer=None, g
     logger.info("***** Running evaluation {} *****".format(prefix))
     logger.info("  Num examples = %d", len(eval_dataset))
     logger.info("  Batch size = %d", params['alg']['eval_batch_size'])
-    eval_loss = 0.0
+    total_eval_loss = 0.0
     nb_eval_steps = 0
     model.eval()
 
@@ -216,18 +215,20 @@ def evaluate(params, model, tokenizer, device, prefix="", summary_writer=None, g
         with torch.no_grad():
             outputs = model(batch, labels=batch)
             lm_loss = outputs[0]
-            eval_loss += lm_loss.mean().item()
+            loss = lm_loss.mean().item()
+            total_eval_loss += loss
+        tb_writer.add_scalar('Avg Batch Eval Loss', loss, nb_eval_steps)
+        tb_writer.add_scalar('Time', (time.time() - start), nb_eval_steps)
         nb_eval_steps += 1
 
-    eval_loss = eval_loss / nb_eval_steps
-    perplexity = torch.exp(torch.tensor(eval_loss))
+    total_eval_loss = total_eval_loss / nb_eval_steps
+    perplexity = torch.exp(torch.tensor(total_eval_loss))
 
-    summary_writer.add_scalar('Evaluation Loss', eval_loss, global_step)
-    summary_writer.add_scalar('perplexity', perplexity, global_step)
-    summary_writer.add_scalar('Time', time.time() - start, global_step)
-    summary_writer.add_scalar("nb_eval_steps", nb_eval_steps, global_step)
+    tb_writer.add_scalar('Avg Total Eval Loss', total_eval_loss, prefix)
+    tb_writer.add_scalar('Perplexity', perplexity, prefix)
 
     result = {
+        "total_eval_loss": total_eval_loss,
         "perplexity": perplexity
     }
 
@@ -242,8 +243,6 @@ def evaluate(params, model, tokenizer, device, prefix="", summary_writer=None, g
 
 
 def trainer(params: DictConfig):
-    # we will handle the version warning later
-
     # Check for configuration problems
     if params['data']['eval_data_file'] is None and params['alg']['do_eval']:
         raise ValueError("Cannot do evaluation without an evaluation data file. Either supply a file to "
@@ -303,17 +302,21 @@ def trainer(params: DictConfig):
 
     logger.info("Training/evaluation parameters %s", params)
 
+    # Setup Tensorboard
+    tb_writer = SummaryWriter(log_dir='tensorboard_logs/tensorboard_event_file')
+
     # Training
     if params['alg']['do_train']:
         train_dataset = load_and_cache_examples(params, tokenizer, evaluate=False)
 
         print(len(train_dataset.examples))
-        global_step, tr_loss = train(params, train_dataset, model, tokenizer, device)
+        global_step, tr_loss = train(params, train_dataset, model, tokenizer, device, tb_writer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
     # Saving best-practices: if you use save_pretrained for the model and tokenizer, you can reload them using from_pretrained()
     if params['alg']['do_train']:
         # Create output directory if needed
+        output_dir = os.path.join(params['data']['output_dir'], 'checkpoint-{}'.format(global_step))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -347,12 +350,14 @@ def trainer(params: DictConfig):
             global_step = checkpoint.split('-')[-1] if len(checkpoints) > 1 else ""
             model = model_class.from_pretrained(checkpoint)
             model.to(device)
-            result = evaluate(params, model, tokenizer, device, prefix=global_step)
+            result = evaluate(params, model, tokenizer, device, prefix=str(global_step), tb_writer=tb_writer)
             result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
             results.update(result)
     # elif params['alg']['output_dir_to_eval']:
     #     raise ValueError("Cannot do evaluation without an evaluation data file. Either supply a file to "
     #                      "--eval_data_file or remove the --do_eval argument.")
+
+    tb_writer.close()
 
     return results
 

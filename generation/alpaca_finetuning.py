@@ -25,7 +25,30 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.optim import AdamW
 from tqdm import tqdm, trange
 
+import os
+import sys
+from typing import List
+
+import fire
+import torch
+import transformers
+
+"""
+Unused imports:
+import torch.nn as nn
+import bitsandbytes as bnb
+"""
+
 from transformers import (WEIGHTS_NAME, get_linear_schedule_with_warmup, GPT2Config, GPT2LMHeadModel, GPT2Tokenizer)
+from peft import (
+    LoraConfig,
+    get_peft_model,
+    get_peft_model_state_dict,
+    prepare_model_for_int8_training,
+    set_peft_model_state_dict,
+)
+from transformers import LlamaForCausalLM, LlamaTokenizer
+from utils.prompter import Prompter
 
 logger = logging.getLogger(__name__)
 
