@@ -28,7 +28,7 @@ alg:
     adam_epsilon: 1e-8  # "Epsilon for Adam optimizer."
     max_grad_norm: 1.0  # "Max gradient norm."
     num_train_epochs: 1.0  # "Total number of training epochs to perform."
-    max_steps: 100  # "If > 0: set total number of training steps to perform. Override num_train_epochs."
+    max_steps: -1  # "If > 0: set total number of training steps to perform. Override num_train_epochs."
     warmup_steps: 0  # "Linear warmup over warmup_steps."
 
 log:

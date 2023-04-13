@@ -29,8 +29,8 @@ def main(params: DictConfig):
 
     results = trainer(params=params)
 
-    print('results:')
-    return results
+    logger.info("Training/evaluation results %s", results)
+    logger.info("Training successfully finished!")
 
 
 if __name__ == "__main__":

@@ -162,7 +162,7 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
                     tokenizer.save_pretrained(output_dir)
                     logger.info("Saving model checkpoint to %s", output_dir)
                     if params['alg']['evaluate_during_training']:  # Only evaluate when single GPU otherwise metrics may not average well
-                        results = evaluate(params, model, tokenizer, device, prefix=str(global_step), tb_writer=tb_writer)
+                        results = evaluate(params, model, tokenizer, device, prefix=global_step, tb_writer=tb_writer)
                         for key, value in results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
                     if params['log']['aws_bucket']:
@@ -185,7 +185,7 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
     return global_step, tr_loss / global_step
 
 
-def evaluate(params, model, tokenizer, device, prefix="", tb_writer=None):
+def evaluate(params, model, tokenizer, device, prefix, tb_writer=None):
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_output_dir = params['data']['output_dir']
 
@@ -200,7 +200,7 @@ def evaluate(params, model, tokenizer, device, prefix="", tb_writer=None):
     eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=params['alg']['eval_batch_size'])
 
     # Eval!
-    logger.info("***** Running evaluation {} *****".format(prefix))
+    logger.info("***** Running evaluation at step: {} *****".format(prefix))
     logger.info("  Num examples = %d", len(eval_dataset))
     logger.info("  Batch size = %d", params['alg']['eval_batch_size'])
     total_eval_loss = 0.0
@@ -223,9 +223,8 @@ def evaluate(params, model, tokenizer, device, prefix="", tb_writer=None):
 
     total_eval_loss = total_eval_loss / nb_eval_steps
     perplexity = torch.exp(torch.tensor(total_eval_loss))
-
-    tb_writer.add_scalar('Avg Total Eval Loss', total_eval_loss, prefix)
-    tb_writer.add_scalar('Perplexity', perplexity, prefix)
+    tb_writer.add_scalar('Avg Total Eval Loss', total_eval_loss, global_step=int(prefix))
+    tb_writer.add_scalar('Perplexity', perplexity, global_step=int(prefix))
 
     result = {
         "total_eval_loss": total_eval_loss,
@@ -347,10 +346,10 @@ def trainer(params: DictConfig):
             logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)  # Reduce logging
         logger.info("Evaluate the following checkpoints: %s", checkpoints)
         for checkpoint in checkpoints:
-            global_step = checkpoint.split('-')[-1] if len(checkpoints) > 1 else ""
+            global_step = checkpoint.split('-')[-1]
             model = model_class.from_pretrained(checkpoint)
             model.to(device)
-            result = evaluate(params, model, tokenizer, device, prefix=str(global_step), tb_writer=tb_writer)
+            result = evaluate(params, model, tokenizer, device, prefix=global_step, tb_writer=tb_writer)
             result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
             results.update(result)
     # elif params['alg']['output_dir_to_eval']:
