@@ -44,7 +44,7 @@ def tokenize():
 
     original_cwd = get_original_cwd()
 
-    hf = h5py.File(original_cwd + "/data/unsupervised" + h5_name + ".h5", "w")
+    hf = h5py.File(original_cwd + "/data/unsupervised_" + h5_name + ".h5", "w")
     for filename in ["test", "train"]:
         out_np = []
         data = open(original_cwd + "/data/unsupervised_" + filename + ".txt", "r")
