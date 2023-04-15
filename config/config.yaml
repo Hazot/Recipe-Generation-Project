@@ -13,7 +13,7 @@ alg:
     model_type: llama  # "Model type selected in the list"
     tokenizer_name: decapoda-research/llama-7b-hf  # "Optional pretrained tokenizer name or path if not the same as
     model_name_or_path: decapoda-research/llama-7b-hf  # "The model checkpoint for weights initialization."
-    no_cuda: True  # "Avoid using CUDA when available"
+    no_cuda: False  # "Avoid using CUDA when available"
     n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
     config_name: ''  # "Optional pretrained config name or path if not the same as model_name_or_path"
     cache_dir: ''  # "Optional directory to store the pre-trained models downloaded from s3 (instread of the default one)"
