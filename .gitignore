@@ -278,3 +278,4 @@ pyrightconfig.json
 data/
 outputs/*
 models/*
+eval/ingredient_list.txt
