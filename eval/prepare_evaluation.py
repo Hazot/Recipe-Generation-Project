@@ -16,6 +16,7 @@
 #    Done! 1000 recipes generated and written to generated_recipes.txt.
 
 import re
+from eval_generation import *
 
 def main():
     file_path = '../data/unsupervised_test.txt'
@@ -37,7 +38,12 @@ def main():
             for i, line in enumerate(input_file):
                 if (i < num_recipes):
                     ingredients = getIngredients(line)
+                    generated_recipes = generate_recipe(ingredients=ingredients)
+
                     output_file.write(ingredients + "\n")
+                    for generated_recipe in generated_recipes:
+                        output_file.write(generated_recipe + "\n")
+
 
 if __name__ == '__main__':
     main()
