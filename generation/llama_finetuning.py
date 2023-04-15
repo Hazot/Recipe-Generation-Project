@@ -40,7 +40,7 @@ def tardir(path, tar_name):
 
 class TextDataset(Dataset):
     def __init__(self, tokenizer, file_path='train', block_size=512):
-        cached_features_file = get_original_cwd() + "/data/unsupervised.h5"
+        cached_features_file = get_original_cwd() + "/data/unsupervised_llama_2048.h5"
         print('os.getcwd()', get_original_cwd())
 
         logger.info("Loading features from cached file %s", cached_features_file)
@@ -100,6 +100,15 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
                    params['alg']['train_batch_size'] * params['alg']['gradient_accumulation_steps'])
     logger.info("  Gradient Accumulation steps = %d", params['alg']['gradient_accumulation_steps'])
     logger.info("  Total optimization steps = %d", t_total)
+    # logger.info("***** Running training *****")
+    # logger.info(f"  Num examples = {len(train_dataset)}",
+    #             f"  Num of recipes divided into blocks of tokens of size={params['alg']['block_size']}")
+    # logger.info(f"  Num Epochs = {params['alg']['num_train_epochs']}")
+    # logger.info(f"  Instantaneous batch size per GPU = {params['alg']['per_gpu_train_batch_size']}")
+    # logger.info(
+    #     f"  Total train batch size = {params['alg']['train_batch_size'] * params['alg']['gradient_accumulation_steps']}")
+    # logger.info(f"  Gradient Accumulation steps = {params['alg']['gradient_accumulation_steps']}")
+    # logger.info(f"  Total optimization steps = {t_total}")
 
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
@@ -291,8 +300,9 @@ def trainer_llama(params: DictConfig):
     model.resize_token_embeddings(len(tokenizer))
 
     if params['alg']['block_size'] <= 0:
-        params['alg']['block_size'] = tokenizer.max_len_single_sentence  # Our input block size will be the max possible
-    params['alg']['block_size'] = min(params['alg']['block_size'], tokenizer.max_len_single_sentence)
+        params['alg']['block_size'] = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]  
+        # Our input block size will be the max possible
+    params['alg']['block_size'] = min(params['alg']['block_size'], tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"])
     model.to(device)
 
     # Setup logging
