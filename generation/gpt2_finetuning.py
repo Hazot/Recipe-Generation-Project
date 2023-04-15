@@ -241,7 +241,7 @@ def evaluate(params, model, tokenizer, device, prefix, tb_writer=None):
     return result
 
 
-def trainer(params: DictConfig):
+def trainer_gpt2(params: DictConfig):
     # Check for configuration problems
     if params['data']['eval_data_file'] is None and params['alg']['do_eval']:
         raise ValueError("Cannot do evaluation without an evaluation data file. Either supply a file to "
