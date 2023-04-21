@@ -26,6 +26,7 @@ from torch.optim import AdamW
 from tqdm import tqdm, trange
 
 from transformers import (WEIGHTS_NAME, get_linear_schedule_with_warmup, GPT2Config, GPT2LMHeadModel, GPT2Tokenizer)
+from transformers import (LlamaConfig, LlamaForCausalLM, LlamaTokenizer)
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ def tardir(path, tar_name):
 
 class TextDataset(Dataset):
     def __init__(self, tokenizer, file_path='train', block_size=512):
-        cached_features_file = get_original_cwd() + "/data/unsupervised.h5"
+        cached_features_file = get_original_cwd() + "/data/unsupervised_llama_2048.h5"
         print('os.getcwd()', get_original_cwd())
 
         logger.info("Loading features from cached file %s", cached_features_file)
@@ -91,14 +92,16 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
 
     # Train!
     logger.info("***** Running training *****")
-    logger.info("  Num examples = %d", len(train_dataset),
-                "  Num of recipes divided into blocks of tokens of size=", params['alg']['block_size'])
-    logger.info("  Num Epochs = %d", params['alg']['num_train_epochs'])
-    logger.info("  Instantaneous batch size per GPU = %d", params['alg']['per_gpu_train_batch_size'])
-    logger.info("  Total train batch size = %d",
-                   params['alg']['train_batch_size'] * params['alg']['gradient_accumulation_steps'])
-    logger.info("  Gradient Accumulation steps = %d", params['alg']['gradient_accumulation_steps'])
-    logger.info("  Total optimization steps = %d", t_total)
+    logger.info(f"  Num examples = {len(train_dataset)}")
+    logger.info(f"  Num of recipes divided into blocks of tokens of size={params['gpt2']['block_size']}")
+    logger.info(f"  Num Epochs = {params['gpt2']['num_train_epochs']}")
+    logger.info(f"  Instantaneous batch size per GPU = {params['gpt2']['per_gpu_train_batch_size']}")
+    logger.info(
+        f"  Total train batch size = {params['gpt2']['train_batch_size'] * params['gpt2']['gradient_accumulation_steps']}"
+    )
+    logger.info(f"  Gradient Accumulation steps = {params['gpt2']['gradient_accumulation_steps']}")
+    logger.info(f"  Total optimization steps = {t_total}")
+    logger.info(f"  Training started!")
 
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
@@ -241,7 +244,7 @@ def evaluate(params, model, tokenizer, device, prefix, tb_writer=None):
     return result
 
 
-def trainer_gpt2(params: DictConfig):
+def trainer_llama(params: DictConfig):
     # Check for configuration problems
     if params['data']['eval_data_file'] is None and params['alg']['do_eval']:
         raise ValueError("Cannot do evaluation without an evaluation data file. Either supply a file to "
@@ -258,8 +261,8 @@ def trainer_gpt2(params: DictConfig):
     device = torch.device("cuda" if torch.cuda.is_available() and not params['alg']['no_cuda'] else "cpu")
     params['alg']['n_gpu'] = torch.cuda.device_count()
 
-    model_class = GPT2LMHeadModel
-    tokenizer_class = GPT2Tokenizer
+    model_class = LlamaForCausalLM
+    tokenizer_class = LlamaTokenizer
     if params['alg']['tokenizer_name']:
         tokenizer = tokenizer_class.from_pretrained(params['alg']['tokenizer_name'],
                                                     do_lower_case=params['alg']['do_lower_case'])
@@ -290,8 +293,9 @@ def trainer_gpt2(params: DictConfig):
     model.resize_token_embeddings(len(tokenizer))
 
     if params['alg']['block_size'] <= 0:
-        params['alg']['block_size'] = tokenizer.max_len_single_sentence  # Our input block size will be the max possible
-    params['alg']['block_size'] = min(params['alg']['block_size'], tokenizer.max_len_single_sentence)
+        params['alg']['block_size'] = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
+        # Our input block size will be the max possible
+    params['alg']['block_size'] = min(params['alg']['block_size'], tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"])
     model.to(device)
 
     # Setup logging

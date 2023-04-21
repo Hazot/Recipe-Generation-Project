@@ -277,4 +277,4 @@ pyrightconfig.json
 # Start of user-based settings
 data/
 outputs/*
-models/*
+checkpoints/*

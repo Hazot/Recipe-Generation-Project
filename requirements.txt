@@ -26,3 +26,7 @@ tensorboard
 hydra-core
 sentencepiece
 git+https://github.com/huggingface/transformers.git
+peft
+fire
+bitsandbytes
+accelerate
