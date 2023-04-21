@@ -22,7 +22,6 @@ import logging
 import json
 from tqdm import trange
 
-import os
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -113,10 +112,8 @@ def main(params: DictConfig):
 
     params['alg']['model_type'] = params['alg']['model_type'].lower()
     model_class, tokenizer_class = MODEL_CLASSES[params['alg']['model_type']]
-    path = params['alg']['model_name_or_path']
-    path = os.path.normpath(path)
-    tokenizer = tokenizer_class.from_pretrained(path)
-    model = model_class.from_pretrained(path)
+    tokenizer = tokenizer_class.from_pretrained(params['alg']['model_name_or_path'])
+    model = model_class.from_pretrained(params['alg']['model_name_or_path'])
     model.to(device)
     model.eval()
 
