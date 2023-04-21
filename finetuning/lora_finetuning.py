@@ -194,11 +194,6 @@ def trainer_lora(params: DictConfig):
         train_data = data["train"].shuffle().map(generate_and_tokenize_prompt)
         val_data = None
 
-    if not ddp and torch.cuda.device_count() > 1:
-        # keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
-        model.is_parallelizable = True
-        model.model_parallel = True
-
     trainer = transformers.Trainer(
         model=model,
         train_dataset=train_data,
@@ -219,10 +214,8 @@ def trainer_lora(params: DictConfig):
             output_dir=output_dir,
             save_total_limit=3,
             load_best_model_at_end=True if val_set_size > 0 else False,
-            ddp_find_unused_parameters=False if ddp else None,
             group_by_length=group_by_length,
-            report_to="wandb" if use_wandb else None,
-            run_name=wandb_run_name if use_wandb else None,
+            report_to=["tensorboard"]
         ),
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
@@ -237,9 +230,6 @@ def trainer_lora(params: DictConfig):
         )
     ).__get__(model, type(model))
 
-    if torch.__version__ >= "2" and sys.platform != "win32":
-        model = torch.compile(model)
-
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     model.save_pretrained(output_dir)
@@ -247,7 +237,3 @@ def trainer_lora(params: DictConfig):
     print(
         "\n If there's a warning about missing keys above, please disregard :)"
     )
-
-#
-# if __name__ == "__main__":
-#     fire.Fire(train)
