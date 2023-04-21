@@ -8,9 +8,9 @@ from transformers import LlamaTokenizer
 
 
 def tokenize(params):
-    if params['alg']['model_type'] == 'gpt2':
+    if params['main']['model_type'] == 'gpt2':
         tokenizer = GPT2Tokenizer.from_pretrained("gpt2", do_lower_case=False)
-    elif params['alg']['model_type'] == 'llama':
+    elif params['main']['model_type'] == 'llama':
         tokenizer = LlamaTokenizer.from_pretrained('decapoda-research/llama-7b-hf')
     else:
         raise Exception("Unknown model type")
@@ -39,6 +39,8 @@ def tokenize(params):
         max_token_len = tokenizer.max_model_input_sizes["gpt2"]
     elif isinstance(tokenizer, LlamaTokenizer):
         max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
+    elif isinstance(tokenizer, LlamaTokenizer):
+        max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
     else:
         raise Exception("Unknown tokenizer type")
 
@@ -46,9 +48,9 @@ def tokenize(params):
 
     original_cwd = get_original_cwd()
 
-    hf = h5py.File(original_cwd + "/data/unsupervised_" + params['alg']['model_type'] + ".h5", "w")
+    hf = h5py.File(original_cwd + "/data/unsupervised_" + params['main']['model_type'] + ".h5", "w")
 
-    if params['data']['create_valid']:
+    if params['main']['create_valid']:
         datasets = ["test", "valid", "train"]
     else:
         datasets = ["test", "train"]

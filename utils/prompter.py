@@ -5,6 +5,7 @@ A dedicated helper to manage templates and prompt building.
 import json
 import os.path as osp
 from typing import Union
+import hydra
 
 
 class Prompter(object):
@@ -15,7 +16,8 @@ class Prompter(object):
         if not template_name:
             # Enforce the default here, so the constructor can be called with '' and will not break.
             template_name = "alpaca"
-        file_name = osp.join("templates", f"{template_name}.json")
+        file_name = hydra.utils.get_original_cwd() + f"/utils/{template_name}.json"
+        print('Template file_name: ', file_name)
         if not osp.exists(file_name):
             raise ValueError(f"Can't read {file_name}")
         with open(file_name) as fp:

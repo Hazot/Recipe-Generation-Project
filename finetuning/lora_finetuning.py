@@ -2,11 +2,12 @@ import os
 import sys
 from typing import List
 
-# import fire
+import fire
 import torch
 import transformers
 import hydra
 from omegaconf import DictConfig
+from datasets import load_dataset
 
 from utils.prompter import Prompter
 
@@ -28,9 +29,10 @@ from transformers import LlamaForCausalLM, LlamaTokenizer
 
 def trainer_lora(params: DictConfig):
     # model/data params
-    base_model = params['alg']['model_name_or_path']
-    data_path = "data/unsupervised_llama_valid.h5"
-    output_dir = params['data']['output_dir']
+    base_model = params['lora']['model_name_or_path']
+    # data_path = "data/unsupervised_llama_valid.h5"
+    data_path = hydra.utils.get_original_cwd() + "/data/llama_recipes.json"
+    output_dir = params['lora']['output_dir']
 
     # training hyperparams
     batch_size = 128
@@ -50,20 +52,23 @@ def trainer_lora(params: DictConfig):
     train_on_inputs = True  # if False, masks out inputs in loss
     group_by_length = False  # faster, but produces an odd training loss curve
     resume_from_checkpoint = None  # either training checkpoint or final adapter
-    prompt_template_name = "alpaca"  # The prompt template to use, will default to alpaca.
+    prompt_template_name = "alpaca_short"  # The prompt template to use, will default to alpaca.
+
+    prompter = Prompter(prompt_template_name)
 
     gradient_accumulation_steps = batch_size // micro_batch_size
 
     # Initializations
-    device = torch.device("cuda" if torch.cuda.is_available() and not params['alg']['no_cuda'] else "cpu")
-    params['alg']['n_gpu'] = torch.cuda.device_count()
+    device = torch.device("cuda" if torch.cuda.is_available() and not params['lora']['no_cuda'] else "cpu")
+    params['lora']['n_gpu'] = torch.cuda.device_count()
 
     model = LlamaForCausalLM.from_pretrained(
         base_model,
         load_in_8bit=True,
+        # load_in_8bit_fp32_cpu_offload=True,
         torch_dtype=torch.float16,
         device_map='auto'
-    )
+    )  # takes 5 minutes to load with no feedback whatsoever
 
     special_tokens = {
         "additional_special_tokens": [
@@ -147,6 +152,11 @@ def trainer_lora(params: DictConfig):
         task_type="CAUSAL_LM",
     )
     model = get_peft_model(model, config)
+
+    if data_path.endswith(".json") or data_path.endswith(".jsonl"):
+        data = load_dataset("json", data_files=data_path)
+    else:
+        data = load_dataset(data_path)
 
     if resume_from_checkpoint:
         # Check the available weights and load them

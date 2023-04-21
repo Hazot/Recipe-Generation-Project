@@ -35,7 +35,7 @@ def dataset2text(params):
 
     train, test = train_test_split(df, test_size=0.05)  # Use 5% for test set
     # train: (1996021, 7), test: (105054, 7)
-    if params['data']['create_valid']:
+    if params['main']['create_valid']:
         train, valid = train_test_split(train, test_size=0.05)  # Use 5% for test set
         # train: (1896219, 7), valid: (99802, 7)
         print('train.shape', train.shape)
@@ -75,6 +75,6 @@ def dataset2text(params):
             print('last index:', index)
 
     df_to_plaintext_file(train, local_path + '/data/unsupervised_train.txt')  # (1896219, 7)
-    if params['data']['create_valid']:
+    if params['main']['create_valid']:
         df_to_plaintext_file(valid, local_path + '/data/unsupervised_valid.txt')  # (99802, 7)
     df_to_plaintext_file(test, local_path + '/data/unsupervised_test.txt')  # (105054, 7)

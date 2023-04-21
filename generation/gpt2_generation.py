@@ -82,7 +82,17 @@ def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')
     return logits
 
 
-def sample_sequence(model, length, context, tokenizer, num_samples=1, temperature=1, top_k=0, top_p=0.0, device='cpu'):
+def sample_sequence(
+        model,
+        length,
+        context,
+        tokenizer,
+        num_samples=1,
+        temperature=1,
+        top_k=0,
+        top_p=0.0,
+        device='cpu'
+):
     end_token = tokenizer.convert_tokens_to_ids(["<RECIPE_END>"])[0]
     context = torch.tensor(context, dtype=torch.long, device=device)
     context = context.unsqueeze(0).repeat(num_samples, 1)
