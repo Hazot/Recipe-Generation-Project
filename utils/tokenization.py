@@ -1,17 +1,37 @@
-from transformers import GPT2Tokenizer
 import h5py
 from hydra.utils import get_original_cwd
 from tqdm import tqdm
 import numpy as np
 
-from transformers import LlamaTokenizer
+from transformers import GPT2Tokenizer, LlamaTokenizer, AutoTokenizer
 
 
 def tokenize(params):
     if params['main']['model_type'] == 'gpt2':
-        tokenizer = GPT2Tokenizer.from_pretrained("gpt2", do_lower_case=False)
+        tokenizer = GPT2Tokenizer.from_pretrained(
+            params['gpt2']['tokenizer_name'],
+            do_lower_case=params['gpt2']['do_lower_case']
+        )
+        max_token_len = tokenizer.max_model_input_sizes["gpt2"]
+    elif params['main']['model_type'] == 'opt':
+        tokenizer = AutoTokenizer.from_pretrained(
+            params['opt']['tokenizer_name'],
+            use_fast=False,
+            do_lower_case=params['opt']['do_lower_case']
+        )
+        max_token_len = tokenizer.max_model_input_sizes["gpt2"]
     elif params['main']['model_type'] == 'llama':
-        tokenizer = LlamaTokenizer.from_pretrained('decapoda-research/llama-7b-hf')
+        tokenizer = LlamaTokenizer.from_pretrained(
+            params['llama']['tokenizer_name'],
+            do_lower_case=params['llama']['do_lower_case']
+        )
+        max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
+    elif params['main']['model_type'] == 'lora':
+        tokenizer = LlamaTokenizer.from_pretrained(
+            params['lora']['tokenizer_name'],
+            do_lower_case=params['lora']['do_lower_case']
+        )
+        max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
     else:
         raise Exception("Unknown model type")
 
@@ -35,15 +55,6 @@ def tokenize(params):
 
     tokenizer.add_special_tokens(special_tokens)
 
-    if isinstance(tokenizer, GPT2Tokenizer):
-        max_token_len = tokenizer.max_model_input_sizes["gpt2"]
-    elif isinstance(tokenizer, LlamaTokenizer):
-        max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
-    elif isinstance(tokenizer, LlamaTokenizer):
-        max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
-    else:
-        raise Exception("Unknown tokenizer type")
-
     end_token_id = tokenizer.convert_tokens_to_ids(["< RECIPE_END>"])[0]
 
     original_cwd = get_original_cwd()
@@ -56,7 +67,7 @@ def tokenize(params):
         datasets = ["test", "train"]
     for filename in datasets:
         out_np = []
-        data = open(original_cwd + "/data/unsupervised_" + filename + ".txt", "r")
+        data = open(original_cwd + "/data/unsupervised_" + filename + "_filtered.txt", "r")
         num = 0
         rows = 0
         last = []

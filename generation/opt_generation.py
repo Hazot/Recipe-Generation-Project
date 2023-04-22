@@ -16,57 +16,6 @@ from torch.utils.data import Dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer
 from transformers import OPTModel
 
-# logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-#                     datefmt='%m/%d/%Y %H:%M:%S',
-#                     level=logging.INFO)
-#
-# MAX_LENGTH = int(10000)  # Hardcoded max length to avoid infinite loop
-#
-# MODEL_CLASSES = {
-#     'opt': (AutoModelForCausalLM, AutoTokenizer),
-# }
-#
-
-# def set_seed(params):
-#     np.random.seed(params['opt']['seed'])
-#     torch.manual_seed(params['opt']['seed'])
-#     if params['opt']['n_gpu'] > 0:
-#         torch.cuda.manual_seed_all(params['opt']['seed'])
-#
-#
-# def generate_recipes_opt(params: DictConfig):
-#     # Initializations
-#     device = torch.device("cuda" if torch.cuda.is_available() and not params['opt']['no_cuda'] else "cpu")
-#     params['opt']['n_gpu'] = torch.cuda.device_count()
-#
-#     set_seed(params=params)
-#
-#     # Update checkpoint path for current local directory
-#     params['opt']['model_name_or_path'] = hydra.utils.get_original_cwd() + params['opt']['model_name_or_path']
-#
-#     params['opt']['model_type'] = params['opt']['model_type'].lower()
-#     tokenizer = AutoTokenizer.from_pretrained(params['opt']['tokenizer'])
-#     model = AutoModelForCausalLM.from_pretrained(params['opt']['model_name_or_path'])
-#     model.to(device)
-#     model.eval()
-#
-#     if params['opt']['length'] < 0 and model.config.max_position_embeddings > 0:
-#         params['opt']['length'] = model.config.max_position_embeddings
-#     elif 0 < model.config.max_position_embeddings < params['opt']['length']:
-#         params['opt']['length'] = model.config.max_position_embeddings  # No generation bigger than model size
-#     elif params['opt']['length'] < 0:
-#         params['opt']['length'] = MAX_LENGTH  # avoid infinite loop
-#
-#     # prompt = "Generate a recipe for a dish that is has ingredients like: " + params['opt']['prompt'] + "."
-#     prompt = 'ham, egg, butter, milk, leek, sour creme, bread, sausage'
-#     inputs = tokenizer(prompt, return_tensors="pt").to(device)
-#
-#     generate_ids = model.generate(inputs.input_ids, max_length=600)
-#     result = tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
-#
-#     print(result)
-#
-#     return result
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -148,7 +97,7 @@ def generate_recipes_opt(params: DictConfig):
 
     params['opt']['model_type'] = params['opt']['model_type'].lower()
     model_class, tokenizer_class = MODEL_CLASSES[params['opt']['model_type']]
-    tokenizer = tokenizer_class.from_pretrained(params['opt']['model_name_or_path'])
+    tokenizer = tokenizer_class.from_pretrained(params['opt']['model_name_or_path'], use_fast=False, do_lower_case=False)
     model = model_class.from_pretrained(params['opt']['model_name_or_path'])
     model.to(device)
     model.eval()

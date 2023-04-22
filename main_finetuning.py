@@ -30,17 +30,14 @@ def main(params: DictConfig):
                         level=logging.INFO)
 
     logger.info("Training/evaluation parameters %s", params)
+    print("==========================================================================================================")
 
     if params['main']['model_type'] == 'gpt2':
 
-        params['gpt2']['model_type'] = 'gpt2'
         params['gpt2']['tokenizer_name'] = 'gpt2'
         params['gpt2']['model_name_or_path'] = 'gpt2'
 
-        params['main']['create_txt_files'] = params['gpt2']['create_txt_files']
-        params['main']['create_h5_file'] = params['gpt2']['create_h5_file']
         params['main']['create_valid'] = params['gpt2']['create_valid']
-
         create_dataset(params=params)
 
         results = trainer_gpt2(params=params)
@@ -53,11 +50,7 @@ def main(params: DictConfig):
         params['opt']['tokenizer_name'] = 'facebook/opt-125m'
         params['opt']['model_name_or_path'] = 'facebook/opt-125m'
 
-        params['main']['create_txt_files'] = params['opt']['create_txt_files']
-        params['main']['create_h5_file'] = params['opt']['create_h5_file']
         params['main']['create_valid'] = params['opt']['create_valid']
-        params['main']['tokenizer']
-
         create_dataset(params=params)
 
         results = trainer_opt(params=params)
@@ -70,6 +63,9 @@ def main(params: DictConfig):
         params['llama']['tokenizer_name'] = 'decapoda-research/llama-7b-hf'
         params['llama']['model_name_or_path'] = 'decapoda-research/llama-7b-hf'
 
+        params['main']['create_valid'] = params['llama']['create_valid']
+        create_dataset(params=params)
+
         results = trainer_llama(params=params)
 
         logger.info("Training/evaluation results %s", results)
@@ -79,6 +75,9 @@ def main(params: DictConfig):
 
         params['lora']['tokenizer_name'] = 'huggyllama/llama-7b'
         params['lora']['model_name_or_path'] = 'huggyllama/llama-7b'
+
+        params['main']['create_valid'] = params['lora']['create_valid']
+        create_dataset(params=params)
 
         results = trainer_lora(params=params)
 

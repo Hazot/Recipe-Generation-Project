@@ -1,5 +1,5 @@
 main:
-    model_type: gpt2  # "Model type selected in the list"
+    model_type: opt  # "Model type selected in the list"
     train_data_file: data/unsupervised_train.txt  # "The input training data file (a text file)."
     output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
     eval_data_file: data/unsupervised_test.txt   # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
@@ -7,6 +7,7 @@ main:
 
 gpt2:
     model_type: gpt2  # "Model type selected in the list"
+    tokenizer: gpt2
     model_name_or_path: '/checkpoints/gpt2/checkpoint-gpt2/'  # "The model checkpoint for weights initialization., Use '/' before the first directory."
     prompt: 'ham, egg, butter, milk, leek, sour creme, bread, sausage'
     num_promps: 5  # "Number of prompts to generate."
@@ -25,7 +26,6 @@ gpt2:
     overwrite_output_dir: True  # "Overwrite the content of the output directory"
     overwrite_cache: False  # "Overwrite the cached training and evaluation sets"
     aws_bucket: ''  # "Whether to upload to specified bucket."
-
 
 opt:
     model_type: opt  # "Model type selected in the list"

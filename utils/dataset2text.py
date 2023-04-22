@@ -10,6 +10,11 @@ from tqdm import tqdm
 
 def dataset2text(params):
     local_path = os.path.normpath(get_original_cwd())
+
+    if local_path + '/data/unsupervised_train.txt' in os.listdir(local_path + '/data/'):
+        print('Dataset already in text format. Skipping conversion.')
+        return
+
     dataset_path = local_path + "/data/full_dataset.csv"
     if not os.path.exists(dataset_path):
         raise Exception("Dataset not found. Please be sure to put full_dataset.csv in the 'data/' folder")
@@ -74,7 +79,38 @@ def dataset2text(params):
                     continue
             print('last index:', index)
 
+    def filter_txt(input_path, output_path):
+        print("Filtering", input_path, "to", output_path)
+        count = 0
+        bad_lines = pd.DataFrame()
+        pattern1 = r"<RECIPE_START>"
+        pattern2 = r"<RECIPE_END>"
+        with open(input_path, 'r') as f_in:
+            with open(output_path, 'w') as f_out:
+                for i, row in tqdm(enumerate(f_in), desc="Filtering"):
+                    if re.search(pattern1, row) and re.search(pattern2, row):
+                        f_out.write("{}\n".format(row))
+                        continue
+                    else:
+                        d = {'index': i,
+                             'txt': row}
+                        new_row = pd.DataFrame(d, index=[0])
+                        bad_lines = pd.concat([bad_lines, new_row]).reset_index(drop=True)
+                        count += 1
+
+    # Create the files
     df_to_plaintext_file(train, local_path + '/data/unsupervised_train.txt')  # (1896219, 7)
     if params['main']['create_valid']:
         df_to_plaintext_file(valid, local_path + '/data/unsupervised_valid.txt')  # (99802, 7)
     df_to_plaintext_file(test, local_path + '/data/unsupervised_test.txt')  # (105054, 7)
+
+    # Filter the files
+    filter_txt(local_path + '/data/unsupervised_train.txt',
+               local_path + '/data/unsupervised_train_filtered.txt')
+
+    if params['main']['create_valid']:
+        filter_txt(local_path + '/data/unsupervised_valid.txt',
+                   local_path + '/data/unsupervised_valid_filtered.txt')
+
+    filter_txt(local_path + '/data/unsupervised_test.txt',
+               local_path + '/data/unsupervised_test_filtered.txt')

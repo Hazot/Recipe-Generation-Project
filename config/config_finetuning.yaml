@@ -1,24 +1,24 @@
 main:
     model_type: lora  # "Model type selected in the list"
     create_txt_files: False
-    create_h5_file: False
-    create_valid: True  # "Whether to create a validation set."
+    create_h5_file: True
+    create_valid: False  # "Whether to create a validation set."
+    tokenizer: ""  # placeholder
+    model_name_or_path: ""  # placeholder
 
 gpt2:
-    create_txt_files: False
-    create_h5_file: False
     create_valid: True  # "Whether to create a validation set."
     do_train: True  # "Whether to run training."
     do_eval: True  # "Whether to run eval on the dev set."
 
-    train_data_file: data/unsupervised_train.txt  # "The input training data file (a text file)."
-    eval_data_file: data/unsupervised_test.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    train_data_file: data/unsupervised_train_filtered.txt  # "The input training data file (a text file)."
+    eval_data_file: data/unsupervised_test_filtered.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
     output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
     output_dir_to_eval: models_to_evaluate/  # "The output directory where the model predictions checkpoints to eval are."
 
     model_type: gpt2  # "Model type selected in the list"
-    tokenizer_name: xd  # "Optional pretrained tokenizer name or path if not the same as
-    model_name_or_path: xd # "The model checkpoint for weights initialization."
+    tokenizer_name: gpt2  # "Optional pretrained tokenizer name or path if not the same as
+    model_name_or_path: gpt2 # "The model checkpoint for weights initialization."
     no_cuda: False  # "Avoid using CUDA when available"
     n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
     config_name: ''  # "Optional pretrained config name or path if not the same as model_name_or_path"
@@ -47,14 +47,12 @@ gpt2:
     aws_bucket: ''  # "Whether to upload to specified bucket."
 
 opt:
-    create_txt_files: True
-    create_h5_file: True
-    create_valid: True  # "Whether to create a validation set."
+    create_valid: False  # "Whether to create a validation set."
     do_train: True  # "Whether to run training."
     do_eval: True  # "Whether to run eval on the dev set."
 
-    train_data_file: data/unsupervised_train.txt  # "The input training data file (a text file)."
-    eval_data_file: data/unsupervised_test.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    train_data_file: data/unsupervised_train_filtered.txt  # "The input training data file (a text file)."
+    eval_data_file: data/unsupervised_test_filtered.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
     output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
     output_dir_to_eval: models_to_evaluate/  # "The output directory where the model predictions checkpoints to eval are."
 
@@ -91,16 +89,16 @@ opt:
 llama:
     create_txt_files: False
     create_h5_file: False
-    create_valid: True  # "Whether to create a validation set."
+    create_valid: False  # "Whether to create a validation set."
     do_train: True  # "Whether to run training."
     do_eval: True  # "Whether to run eval on the dev set."
 
-    train_data_file: data/unsupervised_train.txt  # "The input training data file (a text file)."
-    eval_data_file: data/unsupervised_test.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    train_data_file: data/unsupervised_train_filtered.txt  # "The input training data file (a text file)."
+    eval_data_file: data/unsupervised_test_filtered.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
     output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
     output_dir_to_eval: models_to_evaluate/  # "The output directory where the model predictions checkpoints to eval are."
 
-    model_type: gpt2  # "Model type selected in the list"
+    model_type: llama  # "Model type selected in the list"
     tokenizer_name: xd  # "Optional pretrained tokenizer name or path if not the same as
     model_name_or_path: xd # "The model checkpoint for weights initialization."
     no_cuda: False  # "Avoid using CUDA when available"
@@ -137,8 +135,8 @@ lora:
     do_train: True  # "Whether to run training."
     do_eval: True  # "Whether to run eval on the dev set."
 
-    train_data_file: data/unsupervised_train.txt  # "The input training data file (a text file)."
-    eval_data_file: data/unsupervised_test.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    train_data_file: data/unsupervised_train_filtered.txt  # "The input training data file (a text file)."
+    eval_data_file: data/unsupervised_test_filtered.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
     output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
     output_dir_to_eval: models_to_evaluate/  # "The output directory where the model predictions checkpoints to eval are."
 
