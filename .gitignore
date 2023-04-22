@@ -277,4 +277,7 @@ pyrightconfig.json
 # Start of user-based settings
 data/
 outputs/*
-checkpoints/*
+gpt2/
+opt/
+lora/
+llama/
