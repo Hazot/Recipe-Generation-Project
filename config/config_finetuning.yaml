@@ -1,7 +1,7 @@
 main:
     model_type: opt  # "Model type selected in the list"
     create_txt_files: False
-    create_h5_file: True
+    create_h5_file: False
     create_valid: False  # "Whether to create a validation set."
     tokenizer: ""  # placeholder
     model_name_or_path: ""  # placeholder
