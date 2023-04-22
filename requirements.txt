@@ -1,5 +1,5 @@
 cosine_similarity
-language_check
+language-tool-python
 textstat
 scipy
 numpy
@@ -11,7 +11,7 @@ bs4
 dask
 matplotlib
 tikzplotlib
-sklearn
+scikit-learn
 numba
 gensim
 textblob
