@@ -39,7 +39,7 @@ def tardir(path, tar_name):
 
 class TextDataset(Dataset):
     def __init__(self, tokenizer, file_path='train', block_size=512):
-        cached_features_file = get_original_cwd() + "/data/unsupervised.h5"
+        cached_features_file = get_original_cwd() + "/data/unsupervised_opt_.h5"
         print('Project Folder', get_original_cwd())
 
         logger.info("Loading features from cached file %s", cached_features_file)
@@ -108,7 +108,7 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
     train_iterator = trange(int(params['opt']['num_train_epochs']), desc="Epoch", disable=False)
     start = time.time()
     for _ in train_iterator:
-        epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=False)
+        epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=False, position=0, leave=True)
         for step, batch in enumerate(epoch_iterator):
             if step % params['opt']['logging_steps'] == 0:
                 # logger.info(f'Step: {step} | Time: {round(time.time() - start, 3)} s')

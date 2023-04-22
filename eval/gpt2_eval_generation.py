@@ -1,36 +1,55 @@
-import hydra
-from tqdm import trange
-from omegaconf import DictConfig
-import logging
-from dataclasses import dataclass, field
-from typing import Dict, Optional, Sequence
+#!/usr/bin/env python3
+# coding=utf-8
+# Copyright 2018 Google AI, Google Brain and Carnegie Mellon University Authors and the HuggingFace Inc. team.
+# Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+""" Conditional text generation with GPT-2
+"""
 
-import io
+import argparse
+import logging
+import json
+from tqdm import trange
+
 import torch
 import torch.nn.functional as F
 import numpy as np
-import json
 import re
+import hydra
+from omegaconf import DictConfig
 
-from torch.utils.data import Dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import GPT2Config
+
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
                     level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 MAX_LENGTH = int(10000)  # Hardcoded max length to avoid infinite loop
 
 MODEL_CLASSES = {
-    'opt': (AutoModelForCausalLM, AutoTokenizer),
+    'gpt2': (GPT2LMHeadModel, GPT2Tokenizer),
 }
 
 
 def set_seed(params):
-    np.random.seed(params['opt']['seed'])
-    torch.manual_seed(params['opt']['seed'])
-    if params['opt']['n_gpu'] > 0:
-        torch.cuda.manual_seed_all(params['opt']['seed'])
+    np.random.seed(params['log']['seed'])
+    torch.manual_seed(params['log']['seed'])
+    if params['alg']['n_gpu'] > 0:
+        torch.cuda.manual_seed_all(params['log']['seed'])
 
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):
@@ -83,47 +102,49 @@ def sample_sequence(model, length, context, tokenizer, num_samples=1, temperatur
     return generated
 
 
-def generate_recipes_opt(params: DictConfig):
+@hydra.main(config_path="config", config_name="config_generation")
+def main(params: DictConfig):
     # Initializations
-    device = torch.device("cuda" if torch.cuda.is_available() and not params['opt']['no_cuda'] else "cpu")
-    params['opt']['n_gpu'] = torch.cuda.device_count()
+    device = torch.device("cuda" if torch.cuda.is_available() and not params['alg']['no_cuda'] else "cpu")
+    params['alg']['n_gpu'] = torch.cuda.device_count()
 
     set_seed(params=params)
 
     # Update checkpoint path for current local directory
-    params['opt']['model_name_or_path'] = hydra.utils.get_original_cwd() + params['opt']['model_name_or_path']
+    params['alg']['model_name_or_path'] = hydra.utils.get_original_cwd() + params['alg']['model_name_or_path']
 
-    params['opt']['model_type'] = params['opt']['model_type'].lower()
-    model_class, tokenizer_class = MODEL_CLASSES[params['opt']['model_type']]
-    tokenizer = tokenizer_class.from_pretrained(params['opt']['model_name_or_path'], use_fast=False, do_lower_case=False, truncation_side='left')
-    model = model_class.from_pretrained(params['opt']['model_name_or_path'])
+    params['alg']['model_type'] = params['alg']['model_type'].lower()
+    model_class, tokenizer_class = MODEL_CLASSES[params['alg']['model_type']]
+    tokenizer = tokenizer_class.from_pretrained(params['alg']['model_name_or_path'])
+    model = model_class.from_pretrained(params['alg']['model_name_or_path'])
     model.to(device)
     model.eval()
 
-    if params['opt']['length'] < 0 and model.config.max_position_embeddings > 0:
-        params['opt']['length'] = model.config.max_position_embeddings
-    elif 0 < model.config.max_position_embeddings < params['opt']['length']:
-        params['opt']['length'] = model.config.max_position_embeddings  # No generation bigger than model size
-    elif params['opt']['length'] < 0:
-        params['opt']['length'] = MAX_LENGTH  # avoid infinite loop
+    if params['alg']['length'] < 0 and model.config.max_position_embeddings > 0:
+        params['alg']['length'] = model.config.max_position_embeddings
+    elif 0 < model.config.max_position_embeddings < params['alg']['length']:
+        params['alg']['length'] = model.config.max_position_embeddings  # No generation bigger than model size
+    elif params['alg']['length'] < 0:
+        params['alg']['length'] = MAX_LENGTH  # avoid infinite loop
 
     results = []
-    for _ in range(params['opt']['num_promps']):
+    for _ in range(params['alg']['num_promps']):
 
         while True:
-            raw_text = params['opt']['prompt'] if params['opt']['prompt'] else input(
+            raw_text = params['alg']['prompt'] if params['alg']['prompt'] else input(
                 "Comma-separated ingredients, semicolon to close the list >>> ")
-            prepared_input = '<RECIPE_START> <INPUT_START> ' + raw_text.replace(',', ' <NEXT_INPUT> ').replace(';', ' <INPUT_END>')
+            prepared_input = '<RECIPE_START> <INPUT_START> ' + raw_text.replace(',', ' <NEXT_INPUT> ').replace(';',
+                                                                                                               ' <INPUT_END>')
             context_tokens = tokenizer.encode(prepared_input)
             out = sample_sequence(
                 model=model,
                 context=context_tokens,
                 tokenizer=tokenizer,
-                num_samples=params['opt']['num_samples'],
-                length=params['opt']['length'],
-                temperature=params['opt']['temperature'],
-                top_k=params['opt']['top_k'],
-                top_p=params['opt']['top_p'],
+                num_samples=params['alg']['num_samples'],
+                length=params['alg']['length'],
+                temperature=params['alg']['temperature'],
+                top_k=params['alg']['top_k'],
+                top_p=params['alg']['top_p'],
                 device=device
             )
             out = out[0, len(context_tokens):].tolist()
@@ -132,7 +153,6 @@ def generate_recipes_opt(params: DictConfig):
                 print(text)
                 print("Failed to generate, recipe's too long")
                 continue
-            text = measurement_converter(text)
             full_text = prepared_input + text
             markdown = re.sub("<RECIPE_(START|END)>", "", full_text)
             recipe_n_title = markdown.split("<TITLE_START>")
@@ -155,7 +175,7 @@ def generate_recipes_opt(params: DictConfig):
             markdown = re.sub("$ +#", "#", markdown)
             markdown = re.sub("( +`|` +)", "`", markdown)
             print(title + markdown)
-            if params['opt']['prompt']:
+            if params['alg']['prompt']:
                 break
 
         results.append(title + markdown)
@@ -164,3 +184,7 @@ def generate_recipes_opt(params: DictConfig):
         json.dump(results, f, indent=4)
 
     return results
+
+
+if __name__ == '__main__':
+    main()

@@ -281,3 +281,6 @@ gpt2/
 opt/
 lora/
 llama/
+eval/ingredient_list.txt
+eval/ingredient_list.txt
+eval/results.json

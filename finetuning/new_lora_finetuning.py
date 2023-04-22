@@ -69,7 +69,7 @@ def trainer_lora(params: DictConfig):
     data_path = hydra.utils.get_original_cwd() + "/data/llama_recipes.json"
 
     # training hyperparams
-    batch_size = 128
+    batch_size = 8
     micro_batch_size = 4
     num_epochs = 3
     learning_rate = 3e-4
@@ -135,48 +135,48 @@ def trainer_lora(params: DictConfig):
     )
     tokenizer.padding_side = "right"  # Left: Allows batched inference, we put right for this task.
 
-    def tokenize(prompt, add_eos_token=True):
-        # there's probably a way to do this with the tokenizer settings
-        # but again, gotta move fast
-        result = tokenizer(
-            prompt,
-            truncation=True,
-            max_length=cutoff_len,
-            padding=False,
-            return_tensors=None,
-        )
-        if (
-            result["input_ids"][-1] != tokenizer.eos_token_id
-            and len(result["input_ids"]) < cutoff_len
-            and add_eos_token
-        ):
-            result["input_ids"].append(tokenizer.eos_token_id)
-            result["attention_mask"].append(1)
-
-        result["labels"] = result["input_ids"].copy()
-
-        return result
-
-    def generate_and_tokenize_prompt(data_point):
-        full_prompt = prompter.generate_prompt(
-            data_point["instruction"],
-            data_point["input"],
-            data_point["output"],
-        )
-        tokenized_full_prompt = tokenize(full_prompt)
-        if not train_on_inputs:
-            user_prompt = prompter.generate_prompt(
-                data_point["instruction"], data_point["input"]
-            )
-            tokenized_user_prompt = tokenize(user_prompt, add_eos_token=False)
-            user_prompt_len = len(tokenized_user_prompt["input_ids"])
-
-            tokenized_full_prompt["labels"] = [
-                -100
-            ] * user_prompt_len + tokenized_full_prompt["labels"][
-                user_prompt_len:
-            ]  # could be sped up, probably
-        return tokenized_full_prompt
+    # def tokenize(prompt, add_eos_token=True):
+    #     # there's probably a way to do this with the tokenizer settings
+    #     # but again, gotta move fast
+    #     result = tokenizer(
+    #         prompt,
+    #         truncation=True,
+    #         max_length=cutoff_len,
+    #         padding=False,
+    #         return_tensors=None,
+    #     )
+    #     if (
+    #         result["input_ids"][-1] != tokenizer.eos_token_id
+    #         and len(result["input_ids"]) < cutoff_len
+    #         and add_eos_token
+    #     ):
+    #         result["input_ids"].append(tokenizer.eos_token_id)
+    #         result["attention_mask"].append(1)
+    #
+    #     result["labels"] = result["input_ids"].copy()
+    #
+    #     return result
+    #
+    # def generate_and_tokenize_prompt(data_point):
+    #     full_prompt = prompter.generate_prompt(
+    #         data_point["instruction"],
+    #         data_point["input"],
+    #         data_point["output"],
+    #     )
+    #     tokenized_full_prompt = tokenize(full_prompt)
+    #     if not train_on_inputs:
+    #         user_prompt = prompter.generate_prompt(
+    #             data_point["instruction"], data_point["input"]
+    #         )
+    #         tokenized_user_prompt = tokenize(user_prompt, add_eos_token=False)
+    #         user_prompt_len = len(tokenized_user_prompt["input_ids"])
+    #
+    #         tokenized_full_prompt["labels"] = [
+    #             -100
+    #         ] * user_prompt_len + tokenized_full_prompt["labels"][
+    #             user_prompt_len:
+    #         ]  # could be sped up, probably
+    #     return tokenized_full_prompt
 
     model = prepare_model_for_int8_training(model)
 
