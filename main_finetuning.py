@@ -4,7 +4,7 @@ import logging
 
 from finetuning.gpt2_finetuning import trainer_gpt2
 from finetuning.llama_finetuning import trainer_llama
-from finetuning.lora_finetuning import trainer_lora
+from finetuning.new_lora_finetuning import trainer_lora
 from finetuning.opt_finetuning import trainer_opt
 
 from utils.tokenization import tokenize
@@ -34,9 +34,6 @@ def main(params: DictConfig):
 
     if params['main']['model_type'] == 'gpt2':
 
-        params['gpt2']['tokenizer_name'] = 'gpt2'
-        params['gpt2']['model_name_or_path'] = 'gpt2'
-
         params['main']['create_valid'] = params['gpt2']['create_valid']
         create_dataset(params=params)
 
@@ -47,9 +44,6 @@ def main(params: DictConfig):
 
     elif params['main']['model_type'] == 'opt':
 
-        params['opt']['tokenizer_name'] = 'facebook/opt-125m'
-        params['opt']['model_name_or_path'] = 'facebook/opt-125m'
-
         params['main']['create_valid'] = params['opt']['create_valid']
         create_dataset(params=params)
 
@@ -59,9 +53,6 @@ def main(params: DictConfig):
         logger.info("Training successfully finished!")
 
     elif params['main']['model_type'] == 'llama':
-
-        params['llama']['tokenizer_name'] = 'decapoda-research/llama-7b-hf'
-        params['llama']['model_name_or_path'] = 'decapoda-research/llama-7b-hf'
 
         params['main']['create_valid'] = params['llama']['create_valid']
         create_dataset(params=params)

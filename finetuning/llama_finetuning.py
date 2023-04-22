@@ -40,7 +40,7 @@ def tardir(path, tar_name):
 
 class TextDataset(Dataset):
     def __init__(self, tokenizer, file_path='train', block_size=512):
-        cached_features_file = get_original_cwd() + "/data/unsupervised_llama_2048.h5"
+        cached_features_file = get_original_cwd() + "/data/unsupervised_llama.h5"
         print('os.getcwd()', get_original_cwd())
 
         logger.info("Loading features from cached file %s", cached_features_file)
@@ -58,36 +58,36 @@ class TextDataset(Dataset):
 
 
 def load_and_cache_examples(params, tokenizer, evaluate=False):
-    dataset = TextDataset(tokenizer, file_path="test" if evaluate else "train", block_size=params['alg']['block_size'])
+    dataset = TextDataset(tokenizer, file_path="test" if evaluate else "train", block_size=params['llama']['block_size'])
     return dataset
 
 
 def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
     """ Train the model """
 
-    params['alg']['train_batch_size'] = params['alg']['per_gpu_train_batch_size'] * max(1, params['alg']['n_gpu'])
+    params['llama']['train_batch_size'] = params['llama']['per_gpu_train_batch_size'] * max(1, params['llama']['n_gpu'])
     train_sampler = RandomSampler(train_dataset)
-    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=params['alg']['train_batch_size'])
+    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=params['llama']['train_batch_size'])
 
-    if params['alg']['max_steps'] > 0:
-        t_total = params['alg']['max_steps']
-        params['alg']['num_train_epochs'] = params['alg']['max_steps'] // \
-                                            (len(train_dataloader) // params['alg']['gradient_accumulation_steps']) + 1
+    if params['llama']['max_steps'] > 0:
+        t_total = params['llama']['max_steps']
+        params['llama']['num_train_epochs'] = params['llama']['max_steps'] // \
+                                            (len(train_dataloader) // params['llama']['gradient_accumulation_steps']) + 1
     else:
-        t_total = len(train_dataloader) // params['alg']['gradient_accumulation_steps'] * \
-                  params['alg']['num_train_epochs']
+        t_total = len(train_dataloader) // params['llama']['gradient_accumulation_steps'] * \
+                  params['llama']['num_train_epochs']
 
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ['bias', 'LayerNorm.weight']  # Types of parameters that do not decay
     optimizer_grouped_parameters = [
         {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-         'weight_decay': params['alg']['weight_decay']},
+         'weight_decay': params['llama']['weight_decay']},
         {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
          'weight_decay': 0.0}
         ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=params['alg']['learning_rate'], eps=params['alg']['adam_epsilon'])
+    optimizer = AdamW(optimizer_grouped_parameters, lr=params['llama']['learning_rate'], eps=params['llama']['adam_epsilon'])
     scheduler = get_linear_schedule_with_warmup(optimizer,
-                                                num_warmup_steps=params['alg']['warmup_steps'],
+                                                num_warmup_steps=params['llama']['warmup_steps'],
                                                 num_training_steps=t_total)
 
     # Train!
@@ -106,12 +106,12 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
     model.zero_grad()
-    train_iterator = trange(int(params['alg']['num_train_epochs']), desc="Epoch", disable=False)
+    train_iterator = trange(int(params['llama']['num_train_epochs']), desc="Epoch", disable=False)
     start = time.time()
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=False)
         for step, batch in enumerate(epoch_iterator):
-            if step % params['log']['logging_steps'] == 0:
+            if step % params['llama']['logging_steps'] == 0:
                 # logger.info(f'Step: {step} | Time: {round(time.time() - start, 3)} s')
                 lol = round(time.time() - start)
             inputs, labels = (batch, batch)
@@ -122,8 +122,8 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
             outputs = model(inputs, labels=labels)
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
 
-            if params['alg']['gradient_accumulation_steps'] > 1:
-                loss = loss / params['alg']['gradient_accumulation_steps']
+            if params['llama']['gradient_accumulation_steps'] > 1:
+                loss = loss / params['llama']['gradient_accumulation_steps']
 
             # with amp.scale_loss(loss, optimizer) as scaled_loss:
             #     scaled_loss.backward()
@@ -131,25 +131,25 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
             loss.backward()
 
             tr_loss += loss.item()
-            if step % params['alg']['gradient_accumulation_steps'] == 0:
-                torch.nn.utils.clip_grad_norm_(optimizer.param_groups[0]['params'], params['alg']['max_grad_norm'])
-                torch.nn.utils.clip_grad_norm_(optimizer.param_groups[1]['params'], params['alg']['max_grad_norm'])
+            if step % params['llama']['gradient_accumulation_steps'] == 0:
+                torch.nn.utils.clip_grad_norm_(optimizer.param_groups[0]['params'], params['llama']['max_grad_norm'])
+                torch.nn.utils.clip_grad_norm_(optimizer.param_groups[1]['params'], params['llama']['max_grad_norm'])
                 optimizer.step()
                 scheduler.step()  # Update learning rate schedule
                 model.zero_grad()
                 global_step += 1
 
-                if params['log']['logging_steps'] > 0 and global_step % params['log']['logging_steps'] == 0:
+                if params['llama']['logging_steps'] > 0 and global_step % params['llama']['logging_steps'] == 0:
                     # Log metrics
                     # tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar('Scheduler Learning Rate', scheduler.get_last_lr()[0], global_step)
-                    tb_writer.add_scalar('Loss', (tr_loss - logging_loss) / params['log']['logging_steps'], global_step)
-                    tb_writer.add_scalar('Time', (time.time() - start) / params['log']['logging_steps'], global_step)
+                    tb_writer.add_scalar('Loss', (tr_loss - logging_loss) / params['llama']['logging_steps'], global_step)
+                    tb_writer.add_scalar('Time', (time.time() - start) / params['llama']['logging_steps'], global_step)
                     logging_loss = tr_loss
 
-                if params['log']['save_steps'] > 0 and global_step % params['log']['save_steps'] == 0:
+                if params['llama']['save_steps'] > 0 and global_step % params['llama']['save_steps'] == 0:
                     # Save model checkpoint
-                    output_dir = os.path.join(params['data']['output_dir'], 'checkpoint-{}'.format(global_step))
+                    output_dir = os.path.join(params['llama']['output_dir'], 'checkpoint-{}'.format(global_step))
 
                     if not os.path.exists(output_dir):
                         os.makedirs(output_dir)
@@ -164,24 +164,24 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
                     torch.save(params, os.path.join(output_dir, 'training_params.bin'))
                     tokenizer.save_pretrained(output_dir)
                     logger.info("Saving model checkpoint to %s", output_dir)
-                    if params['alg']['evaluate_during_training']:  # Only evaluate when single GPU otherwise metrics may not average well
+                    if params['llama']['evaluate_during_training']:  # Only evaluate when single GPU otherwise metrics may not average well
                         results = evaluate(params, model, tokenizer, device, prefix=global_step, tb_writer=tb_writer)
                         for key, value in results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
-                    if params['log']['aws_bucket']:
+                    if params['llama']['aws_bucket']:
                         tgz = "checkpoint-{}.tar".format(global_step)
                         tardir(output_dir, tgz)
                         shutil.rmtree(output_dir)
                         s3 = boto3.resource('s3')
-                        s3.Object(params['log']['aws_bucket'], "checkpoints-gpt-medium/"+tgz).upload_file(tgz)
+                        s3.Object(params['llama']['aws_bucket'], "checkpoints-gpt-medium/"+tgz).upload_file(tgz)
                         os.remove(tgz)
 
-            if params['alg']['max_steps'] > 0 and global_step > params['alg']['max_steps']:
+            if params['llama']['max_steps'] > 0 and global_step > params['llama']['max_steps']:
                 epoch_iterator.close()
                 break
             del inputs, labels, outputs, loss
             torch.cuda.empty_cache()
-        if params['alg']['max_steps'] > 0 and global_step > params['alg']['max_steps']:
+        if params['llama']['max_steps'] > 0 and global_step > params['llama']['max_steps']:
             train_iterator.close()
             break
 
@@ -190,22 +190,22 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
 
 def evaluate(params, model, tokenizer, device, prefix, tb_writer=None):
     # Loop to handle MNLI double evaluation (matched, mis-matched)
-    eval_output_dir = params['data']['output_dir']
+    eval_output_dir = params['llama']['output_dir']
 
     eval_dataset = load_and_cache_examples(params, tokenizer, evaluate=True)
 
     if not os.path.exists(eval_output_dir):
         os.makedirs(eval_output_dir)
 
-    params['alg']['eval_batch_size'] = params['alg']['per_gpu_eval_batch_size'] * max(1, params['alg']['n_gpu'])
+    params['llama']['eval_batch_size'] = params['llama']['per_gpu_eval_batch_size'] * max(1, params['llama']['n_gpu'])
     # Note that DistributedSampler samples randomly
     eval_sampler = SequentialSampler(eval_dataset)
-    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=params['alg']['eval_batch_size'])
+    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=params['llama']['eval_batch_size'])
 
     # Eval!
     logger.info("***** Running evaluation at step: {} *****".format(prefix))
     logger.info("  Num examples = %d", len(eval_dataset))
-    logger.info("  Batch size = %d", params['alg']['eval_batch_size'])
+    logger.info("  Batch size = %d", params['llama']['eval_batch_size'])
     total_eval_loss = 0.0
     nb_eval_steps = 0
     model.eval()
@@ -246,31 +246,33 @@ def evaluate(params, model, tokenizer, device, prefix, tb_writer=None):
 
 def trainer_llama(params: DictConfig):
     # Check for configuration problems
-    if params['data']['eval_data_file'] is None and params['alg']['do_eval']:
+    if params['llama']['eval_data_file'] is None and params['llama']['do_eval']:
         raise ValueError("Cannot do evaluation without an evaluation data file. Either supply a file to "
                          "--eval_data_file or remove the --do_eval argument.")
 
-    output_dir = params['data']['output_dir']
+    output_dir = params['llama']['output_dir']
     if os.path.exists(output_dir) and os.listdir(output_dir) \
-            and params['alg']['do_train'] and not params['log']['overwrite_output_dir']:
+            and params['llama']['do_train'] and not params['llama']['overwrite_output_dir']:
         raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to "
                          "overcome.".format(output_dir))
 
 
     # Initializations
-    device = torch.device("cuda" if torch.cuda.is_available() and not params['alg']['no_cuda'] else "cpu")
-    params['alg']['n_gpu'] = torch.cuda.device_count()
+    device = torch.device("cuda" if torch.cuda.is_available() and not params['llama']['no_cuda'] else "cpu")
+    params['llama']['n_gpu'] = torch.cuda.device_count()
 
-    model_class = LlamaForCausalLM
-    tokenizer_class = LlamaTokenizer
-    if params['alg']['tokenizer_name']:
-        tokenizer = tokenizer_class.from_pretrained(params['alg']['tokenizer_name'],
-                                                    do_lower_case=params['alg']['do_lower_case'])
-    else:
-        tokenizer = tokenizer_class.from_pretrained(params['alg']['model_name_or_path'],
-                                                    do_lower_case=params['alg']['do_lower_case'])
+    if params['llama']['tokenizer_name']:
+        tokenizer = LlamaTokenizer.from_pretrained(params['llama']['tokenizer_name'],
+                                                   do_lower_case=params['llama']['do_lower_case'],
+                                                   truncation_side='left')
 
-    model = model_class.from_pretrained(params['alg']['model_name_or_path'])
+    model = LlamaForCausalLM.from_pretrained(
+        params['lora']['model_name_or_path'],
+        load_in_8bit=True,
+        torch_dtype=torch.float16,
+        device_map='auto'
+    )
+
     special_tokens = {
         "additional_special_tokens": [
             "<TITLE_START>",
@@ -292,11 +294,11 @@ def trainer_llama(params: DictConfig):
     tokenizer.add_special_tokens(special_tokens)
     model.resize_token_embeddings(len(tokenizer))
 
-    if params['alg']['block_size'] <= 0:
-        params['alg']['block_size'] = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
+    if params['llama']['block_size'] <= 0:
+        params['llama']['block_size'] = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
         # Our input block size will be the max possible
-    params['alg']['block_size'] = min(params['alg']['block_size'], tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"])
-    model.to(device)
+    params['llama']['block_size'] = min(params['llama']['block_size'], tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"])
+    # model.to(device)
 
     # Setup logging
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -309,7 +311,7 @@ def trainer_llama(params: DictConfig):
     tb_writer = SummaryWriter(log_dir='tensorboard_logs/tensorboard_event_file')
 
     # Training
-    if params['alg']['do_train']:
+    if params['llama']['do_train']:
         train_dataset = load_and_cache_examples(params, tokenizer, evaluate=False)
 
         print(len(train_dataset.examples))
@@ -317,9 +319,9 @@ def trainer_llama(params: DictConfig):
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
     # Saving best-practices: if you use save_pretrained for the model and tokenizer, you can reload them using from_pretrained()
-    if params['alg']['do_train']:
+    if params['llama']['do_train']:
         # Create output directory if needed
-        output_dir = os.path.join(params['data']['output_dir'], 'checkpoint-{}'.format(global_step))
+        output_dir = os.path.join(params['llama']['output_dir'], 'checkpoint-{}'.format(global_step))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -336,15 +338,15 @@ def trainer_llama(params: DictConfig):
 
         # Load a trained model and vocabulary that you have fine-tuned
         model = model_class.from_pretrained(output_dir)
-        tokenizer = tokenizer_class.from_pretrained(output_dir, do_lower_case=params['alg']['do_lower_case'])
-        model.to(device)
+        tokenizer = tokenizer_class.from_pretrained(output_dir, do_lower_case=params['llama']['do_lower_case'])
+        # model.to(device)
 
     # Evaluation
-    # if params['alg']['do_train']:
+    # if params['llama']['do_train']:
     results = {}
-    if params['alg']['do_eval']:
+    if params['llama']['do_eval']:
         checkpoints = [output_dir]
-        if params['log']['eval_all_checkpoints']:
+        if params['llama']['eval_all_checkpoints']:
             checkpoints = list(
                 os.path.dirname(c) for c in sorted(glob.glob(output_dir + '/**/' + WEIGHTS_NAME, recursive=True)))
             logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)  # Reduce logging
@@ -352,11 +354,11 @@ def trainer_llama(params: DictConfig):
         for checkpoint in checkpoints:
             global_step = checkpoint.split('-')[-1]
             model = model_class.from_pretrained(checkpoint)
-            model.to(device)
+            # model.to(device)
             result = evaluate(params, model, tokenizer, device, prefix=global_step, tb_writer=tb_writer)
             result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
             results.update(result)
-    # elif params['alg']['output_dir_to_eval']:
+    # elif params['llama']['output_dir_to_eval']:
     #     raise ValueError("Cannot do evaluation without an evaluation data file. Either supply a file to "
     #                      "--eval_data_file or remove the --do_eval argument.")
 

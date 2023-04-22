@@ -255,20 +255,18 @@ def trainer_opt(params: DictConfig):
         raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to "
                          "overcome.".format(output_dir))
 
-
     # Initializations
     device = torch.device("cuda" if torch.cuda.is_available() and not params['opt']['no_cuda'] else "cpu")
     params['opt']['n_gpu'] = torch.cuda.device_count()
 
     model_class = AutoModelForCausalLM
     tokenizer_class = AutoTokenizer
-    if params['opt']['tokenizer_name']:
-        tokenizer = tokenizer_class.from_pretrained(params['opt']['tokenizer_name'],
-                                                    do_lower_case=params['opt']['do_lower_case'])
-    else:
-        tokenizer = tokenizer_class.from_pretrained(params['opt']['model_name_or_path'],
-                                                    do_lower_case=params['opt']['do_lower_case'])
 
+    tokenizer = tokenizer_class.from_pretrained(params['opt']['tokenizer_name'],
+                                                do_lower_case=params['opt']['do_lower_case'],
+                                                use_fast=False,
+                                                truncation_side='left'
+                                                )
     model = model_class.from_pretrained(params['opt']['model_name_or_path'])
     special_tokens = {
         "additional_special_tokens": [
@@ -292,8 +290,8 @@ def trainer_opt(params: DictConfig):
     model.resize_token_embeddings(len(tokenizer))
 
     if params['opt']['block_size'] <= 0:
-        params['opt']['block_size'] = tokenizer.max_len_single_sentence  # Our input block size will be the max possible
-    params['opt']['block_size'] = min(params['opt']['block_size'], tokenizer.max_len_single_sentence)
+        params['opt']['block_size'] = tokenizer.max_model_input_sizes["gpt2"]
+    params['opt']['block_size'] = min(params['opt']['block_size'], tokenizer.max_model_input_sizes["gpt2"])
     model.to(device)
 
     # Setup logging
@@ -310,7 +308,7 @@ def trainer_opt(params: DictConfig):
     if params['opt']['do_train']:
         train_dataset = load_and_cache_examples(params, tokenizer, evaluate=False)
 
-        print(len(train_dataset.examples))
+        print('len(train_dataset.examples):', len(train_dataset.examples))
         global_step, tr_loss = train(params, train_dataset, model, tokenizer, device, tb_writer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
@@ -334,7 +332,11 @@ def trainer_opt(params: DictConfig):
 
         # Load a trained model and vocabulary that you have fine-tuned
         model = model_class.from_pretrained(output_dir)
-        tokenizer = tokenizer_class.from_pretrained(output_dir, do_lower_case=params['opt']['do_lower_case'])
+        tokenizer = tokenizer_class.from_pretrained(output_dir,
+                                                    do_lower_case=params['opt']['do_lower_case'],
+                                                    use_fast=False,
+                                                    truncation_side='left'
+                                                    )
         model.to(device)
 
     # Evaluation

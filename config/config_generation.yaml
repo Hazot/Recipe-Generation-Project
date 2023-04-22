@@ -1,8 +1,8 @@
 main:
     model_type: opt  # "Model type selected in the list"
-    train_data_file: data/unsupervised_train.txt  # "The input training data file (a text file)."
+    train_data_file: data/unsupervised_train_filtered.txt  # "The input training data file (a text file)."
     output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
-    eval_data_file: data/unsupervised_test.txt   # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    eval_data_file: data/unsupervised_test_filtered.txt   # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
     output_dir_to_eval: None  # "The output directory where the model predictions checkpoints to eval are."
 
 gpt2:

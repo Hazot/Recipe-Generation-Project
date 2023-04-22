@@ -13,9 +13,7 @@ import json
 import re
 
 from torch.utils.data import Dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer
-from transformers import OPTModel
-
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -97,7 +95,7 @@ def generate_recipes_opt(params: DictConfig):
 
     params['opt']['model_type'] = params['opt']['model_type'].lower()
     model_class, tokenizer_class = MODEL_CLASSES[params['opt']['model_type']]
-    tokenizer = tokenizer_class.from_pretrained(params['opt']['model_name_or_path'], use_fast=False, do_lower_case=False)
+    tokenizer = tokenizer_class.from_pretrained(params['opt']['model_name_or_path'], use_fast=False, do_lower_case=False, truncation_side='left')
     model = model_class.from_pretrained(params['opt']['model_name_or_path'])
     model.to(device)
     model.eval()

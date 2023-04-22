@@ -1,5 +1,5 @@
 main:
-    model_type: opt  # "Model type selected in the list"
+    model_type: llama  # "Model type selected in the list"
     create_txt_files: False
     create_h5_file: False
     create_valid: False  # "Whether to create a validation set."
@@ -99,8 +99,8 @@ llama:
     output_dir_to_eval: models_to_evaluate/  # "The output directory where the model predictions checkpoints to eval are."
 
     model_type: llama  # "Model type selected in the list"
-    tokenizer_name: xd  # "Optional pretrained tokenizer name or path if not the same as
-    model_name_or_path: xd # "The model checkpoint for weights initialization."
+    tokenizer_name: decapoda-research/llama-7b-hf  # "Optional pretrained tokenizer name or path if not the same as
+    model_name_or_path: decapoda-research/llama-7b-hf # "The model checkpoint for weights initialization."
     no_cuda: False  # "Avoid using CUDA when available"
     n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
     config_name: ''  # "Optional pretrained config name or path if not the same as model_name_or_path"
