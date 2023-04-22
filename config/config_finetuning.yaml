@@ -1,5 +1,5 @@
 main:
-    model_type: lora  # "Model type selected in the list"
+    model_type: opt  # "Model type selected in the list"
     create_txt_files: False
     create_h5_file: True
     create_valid: False  # "Whether to create a validation set."
