@@ -10,26 +10,30 @@ def tokenize(params):
     if params['main']['model_type'] == 'gpt2':
         tokenizer = GPT2Tokenizer.from_pretrained(
             params['gpt2']['tokenizer_name'],
-            do_lower_case=params['gpt2']['do_lower_case']
+            do_lower_case=params['gpt2']['do_lower_case'],
+            truncation_side='left'
         )
         max_token_len = tokenizer.max_model_input_sizes["gpt2"]
     elif params['main']['model_type'] == 'opt':
         tokenizer = AutoTokenizer.from_pretrained(
             params['opt']['tokenizer_name'],
             use_fast=False,
-            do_lower_case=params['opt']['do_lower_case']
+            do_lower_case=params['opt']['do_lower_case'],
+            truncation_side='left'
         )
         max_token_len = tokenizer.max_model_input_sizes["gpt2"]
     elif params['main']['model_type'] == 'llama':
         tokenizer = LlamaTokenizer.from_pretrained(
             params['llama']['tokenizer_name'],
-            do_lower_case=params['llama']['do_lower_case']
+            do_lower_case=params['llama']['do_lower_case'],
+            truncation_side='left'
         )
         max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
     elif params['main']['model_type'] == 'lora':
         tokenizer = LlamaTokenizer.from_pretrained(
             params['lora']['tokenizer_name'],
-            do_lower_case=params['lora']['do_lower_case']
+            do_lower_case=params['lora']['do_lower_case'],
+            truncation_side='left'
         )
         max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
     else:
@@ -67,7 +71,9 @@ def tokenize(params):
         datasets = ["test", "train"]
     for filename in datasets:
         out_np = []
-        data = open(original_cwd + "/data/unsupervised_" + filename + "_filtered.txt", "r")
+        path = original_cwd + "/data/unsupervised_" + filename + "_filtered.txt"
+        data = open(path, "r")
+        print("Reading file:" + path)
         num = 0
         rows = 0
         last = []
