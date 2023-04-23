@@ -132,7 +132,6 @@ def generate_recipes_opt(params: DictConfig):
                 print(text)
                 print("Failed to generate, recipe's too long")
                 continue
-            text = measurement_converter(text)
             full_text = prepared_input + text
             markdown = re.sub("<RECIPE_(START|END)>", "", full_text)
             recipe_n_title = markdown.split("<TITLE_START>")

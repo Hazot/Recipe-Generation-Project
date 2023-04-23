@@ -4,7 +4,9 @@ import logging
 
 from finetuning.gpt2_finetuning import trainer_gpt2
 from finetuning.llama_finetuning import trainer_llama
-from finetuning.new_lora_finetuning import trainer_lora
+# from finetuning.new_lora_finetuning import trainer_lora
+from finetuning.lora_finetuning import trainer_lora
+# from finetuning.lora_bien_finetuning import trainer_lora
 from finetuning.opt_finetuning import trainer_opt
 
 from utils.tokenization import tokenize

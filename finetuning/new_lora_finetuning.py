@@ -6,6 +6,8 @@ import logging
 import os
 import random
 import gc
+
+import datasets
 import h5py
 import boto3
 import shutil
@@ -29,7 +31,6 @@ from peft import (
     set_peft_model_state_dict,
 )
 from torch.utils.data import DataLoader, Dataset, SequentialSampler, RandomSampler
-from torch.utils.data.distributed import DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim import AdamW
 from tqdm import tqdm, trange
@@ -40,28 +41,28 @@ from transformers import (WEIGHTS_NAME, get_linear_schedule_with_warmup, AutoMod
 logger = logging.getLogger(__name__)
 
 
-class TextDataset(Dataset):
-    def __init__(self, tokenizer, file_path='train', block_size=512):
-        cached_features_file = get_original_cwd() + "/data/unsupervised.h5"
-        print('Project Folder', get_original_cwd())
+# class TextDataset(Dataset):
+#     def __init__(self, tokenizer, file_path='train', block_size=512):
+#         cached_features_file = get_original_cwd() + "/data/unsupervised_llama_2048.h5"
+#         print('Project Folder', get_original_cwd())
+#
+#         logger.info("Loading features from cached file %s", cached_features_file)
+#         with h5py.File(cached_features_file, 'r') as f:
+#             if file_path=='test':
+#                 self.examples = f[file_path][:] #this is a dev set, 10% of a test set
+#             else:
+#                 self.examples = f[file_path][:]
+#
+#     def __len__(self):
+#         return len(self.examples)
+#
+#     def __getitem__(self, item):
+#         return torch.tensor(self.examples[item])
 
-        logger.info("Loading features from cached file %s", cached_features_file)
-        with h5py.File(cached_features_file, 'r') as f:
-            if file_path=='test':
-                self.examples = f[file_path][:] #this is a dev set, 10% of a test set
-            else:
-                self.examples = f[file_path][:]
-
-    def __len__(self):
-        return len(self.examples)
-
-    def __getitem__(self, item):
-        return torch.tensor(self.examples[item])
-
-
-def load_and_cache_examples(params, tokenizer, evaluate=False):
-    dataset = TextDataset(tokenizer, file_path="test" if evaluate else "train", block_size=params['opt']['block_size'])
-    return dataset
+#
+# def load_and_cache_examples(params, tokenizer, evaluate=False):
+#     dataset = TextDataset(tokenizer, file_path="test" if evaluate else "train", block_size=params['opt']['block_size'])
+#     return dataset
 
 
 def trainer_lora(params: DictConfig):
@@ -69,18 +70,19 @@ def trainer_lora(params: DictConfig):
     data_path = hydra.utils.get_original_cwd() + "/data/llama_recipes.json"
 
     # training hyperparams
-    batch_size = 8
-    micro_batch_size = 4
-    num_epochs = 3
-    learning_rate = 3e-4
+    batch_size = 1
+    micro_batch_size = 1
+    num_epochs = 1
+    learning_rate = 5e-5
     cutoff_len = 256
-    val_set_size = 2000
+    val_set_size = 0
 
     # lora hyperparams
     lora_r = 8
     lora_alpha = 16
     lora_dropout = 0.05
     lora_target_modules = ["q_proj", "v_proj"]
+    # lora_target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
 
     # llm hyperparams
     train_on_inputs = False  # if False, masks out inputs in loss
@@ -88,7 +90,7 @@ def trainer_lora(params: DictConfig):
     resume_from_checkpoint = None  # either training checkpoint or final adapter
     prompt_template_name = "alpaca_short"  # The prompt template to use, will default to alpaca.
 
-    prompter = Prompter(prompt_template_name)
+    # prompter = Prompter(prompt_template_name)
 
     gradient_accumulation_steps = batch_size // micro_batch_size
 
@@ -96,11 +98,18 @@ def trainer_lora(params: DictConfig):
     device = torch.device("cuda" if torch.cuda.is_available() and not params['lora']['no_cuda'] else "cpu")
     params['lora']['n_gpu'] = torch.cuda.device_count()
 
-    model = LlamaForCausalLM.from_pretrained(
-        params['lora']['model_name_or_path'],
-        load_in_8bit=True,
-        torch_dtype=torch.float16,
-        device_map='auto'
+    logger.info('Creating model')
+    # model = LlamaForCausalLM.from_pretrained(
+    #     params['lora']['model_name_or_path'],
+    #     load_in_8bit=True,
+    #     torch_dtype=torch.float16,
+    #     device_map='auto'
+    # )
+    model = AutoModelForCausalLM.from_pretrained(
+        params['opt']['model_name_or_path']
+        # load_in_8bit=True,
+        # torch_dtype=torch.float16,
+        # device_map='auto'
     )
 
     special_tokens = {
@@ -135,50 +144,7 @@ def trainer_lora(params: DictConfig):
     )
     tokenizer.padding_side = "right"  # Left: Allows batched inference, we put right for this task.
 
-    # def tokenize(prompt, add_eos_token=True):
-    #     # there's probably a way to do this with the tokenizer settings
-    #     # but again, gotta move fast
-    #     result = tokenizer(
-    #         prompt,
-    #         truncation=True,
-    #         max_length=cutoff_len,
-    #         padding=False,
-    #         return_tensors=None,
-    #     )
-    #     if (
-    #         result["input_ids"][-1] != tokenizer.eos_token_id
-    #         and len(result["input_ids"]) < cutoff_len
-    #         and add_eos_token
-    #     ):
-    #         result["input_ids"].append(tokenizer.eos_token_id)
-    #         result["attention_mask"].append(1)
-    #
-    #     result["labels"] = result["input_ids"].copy()
-    #
-    #     return result
-    #
-    # def generate_and_tokenize_prompt(data_point):
-    #     full_prompt = prompter.generate_prompt(
-    #         data_point["instruction"],
-    #         data_point["input"],
-    #         data_point["output"],
-    #     )
-    #     tokenized_full_prompt = tokenize(full_prompt)
-    #     if not train_on_inputs:
-    #         user_prompt = prompter.generate_prompt(
-    #             data_point["instruction"], data_point["input"]
-    #         )
-    #         tokenized_user_prompt = tokenize(user_prompt, add_eos_token=False)
-    #         user_prompt_len = len(tokenized_user_prompt["input_ids"])
-    #
-    #         tokenized_full_prompt["labels"] = [
-    #             -100
-    #         ] * user_prompt_len + tokenized_full_prompt["labels"][
-    #             user_prompt_len:
-    #         ]  # could be sped up, probably
-    #     return tokenized_full_prompt
-
-    model = prepare_model_for_int8_training(model)
+    # model = prepare_model_for_int8_training(model)
 
     config = LoraConfig(
         r=lora_r,
@@ -188,40 +154,57 @@ def trainer_lora(params: DictConfig):
         bias="none",
         task_type="CAUSAL_LM",
     )
-    model = get_peft_model(model, config)
+    # model = get_peft_model(model, config)
 
-    if data_path.endswith(".json") or data_path.endswith(".jsonl"):
-        data = load_dataset("json", data_files=data_path)
-    else:
-        data = load_dataset(data_path)
+    # if data_path.endswith(".json") or data_path.endswith(".jsonl"):
+    #     data = load_dataset("json", data_files=data_path)
+    # else:
+    #     data = load_dataset(data_path)
 
-    if resume_from_checkpoint:
-        # Check the available weights and load them
-        checkpoint_name = os.path.join(resume_from_checkpoint, "pytorch_model.bin")  # Full checkpoint
-        if not os.path.exists(checkpoint_name):
-            checkpoint_name = os.path.join(resume_from_checkpoint, "adapter_model.bin")  # only LoRA model - LoRA config above has to fit
-            resume_from_checkpoint = False  # So the trainer won't try loading its state
-        # The two files above have a different name depending on how they were saved, but are actually the same.
-        if os.path.exists(checkpoint_name):
-            print(f"Restarting from {checkpoint_name}")
-            adapters_weights = torch.load(checkpoint_name)
-            model = set_peft_model_state_dict(model, adapters_weights)
-        else:
-            print(f"Checkpoint {checkpoint_name} not found")
+    # if resume_from_checkpoint:
+    #     # Check the available weights and load them
+    #     checkpoint_name = os.path.join(resume_from_checkpoint, "pytorch_model.bin")  # Full checkpoint
+    #     if not os.path.exists(checkpoint_name):
+    #         checkpoint_name = os.path.join(resume_from_checkpoint, "adapter_model.bin")  # only LoRA model - LoRA config above has to fit
+    #         resume_from_checkpoint = False  # So the trainer won't try loading its state
+    #     # The two files above have a different name depending on how they were saved, but are actually the same.
+    #     if os.path.exists(checkpoint_name):
+    #         print(f"Restarting from {checkpoint_name}")
+    #         adapters_weights = torch.load(checkpoint_name)
+    #         model = set_peft_model_state_dict(model, adapters_weights)
+    #     else:
+    #         print(f"Checkpoint {checkpoint_name} not found")
 
-    model.print_trainable_parameters()  # Be more transparent about the % of trainable params.
+    # model.print_trainable_parameters()  # Be more transparent about the % of trainable params.
 
-    train_dataset = load_and_cache_examples(params, tokenizer, evaluate=False)
+    cached_features_file = get_original_cwd() + "/data/unsupervised_llama.h5"
+    logger.info('Project Folder', get_original_cwd())
 
-    print('len(train_dataset.examples):', len(train_dataset.examples))
+    logger.info("Loading features from cached file %s", cached_features_file)
+    with h5py.File(cached_features_file, 'r') as f:
+        dataset_tensor = torch.tensor(f['train'][:]).to(device)
+
+    sentences = datasets.DatasetDict(
+        {
+            "train": dataset_tensor,
+            "labels": dataset_tensor
+        }
+    )
+
+    # dataset_tensor = torch.tensor(train_dataset).to(device)
+    train_sampler = RandomSampler(dataset_tensor)
+    params['lora']['train_batch_size'] = params['lora']['per_gpu_train_batch_size'] * max(1, params['lora']['n_gpu'])
+    train_dataloader = DataLoader(dataset_tensor, sampler=train_sampler, batch_size=params['lora']['train_batch_size'])
+
+    print('len(train_dataset.examples):', len(train_dataloader))
 
     trainer = transformers.Trainer(
         model=model,
-        train_dataset=train_dataset,
+        train_dataset=sentences['train'],
         args=transformers.TrainingArguments(
             per_device_train_batch_size=micro_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
-            warmup_steps=100,
+            warmup_steps=50,
             num_train_epochs=num_epochs,
             learning_rate=learning_rate,
             fp16=True,
@@ -229,18 +212,20 @@ def trainer_lora(params: DictConfig):
             optim="adamw_torch",
             evaluation_strategy="steps" if val_set_size > 0 else "no",
             save_strategy="steps",
-            eval_steps=200 if val_set_size > 0 else None,
-            save_steps=200,
+            eval_steps=len(train_dataloader) // 5 if val_set_size > 0 else None,
+            save_steps=10000,
             output_dir=params['lora']['output_dir'],
             save_total_limit=3,
             load_best_model_at_end=True if val_set_size > 0 else False,
             group_by_length=group_by_length,
-            report_to=["tensorboard"]
+            report_to=["tensorboard"],
+            ignore_data_skip=False
         ),
-        data_collator=transformers.DataCollatorForSeq2Seq(
-            tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
-        ),
+        # data_collator=transformers.DataCollatorForSeq2Seq(
+        #     tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
+        # ),
     )
+
     model.config.use_cache = False
 
     old_state_dict = model.state_dict

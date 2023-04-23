@@ -105,7 +105,7 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
     model.zero_grad()
-    train_iterator = trange(int(params['opt']['num_train_epochs']), desc="Epoch", disable=False)
+    train_iterator = trange(int(params['opt']['num_train_epochs']), desc="Epoch", disable=False, position=0, leave=True)
     start = time.time()
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=False, position=0, leave=True)
@@ -211,7 +211,7 @@ def evaluate(params, model, tokenizer, device, prefix, tb_writer=None):
 
     start = time.time()
 
-    for batch in tqdm(eval_dataloader, desc="Evaluating"):
+    for batch in tqdm(eval_dataloader, desc="Evaluating", position=0, leave=True):
         batch = batch.to(device)
 
         with torch.no_grad():

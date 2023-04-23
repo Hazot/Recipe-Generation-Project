@@ -12,9 +12,9 @@ gpt2:
     prompt: 'ham, egg, butter, milk, leek, sour creme, bread, sausage'
     num_promps: 5  # "Number of prompts to generate."
     num_samples: 1  # "Number of samples to generate."
-    length: 600  # "Number of tokens to generate."
-    temperature: 3.0 # "Close to 0 is more greedy, higher is more random"
-    top_k: 3  # "The number of highest probability vocabulary tokens to keep for top-k-filtering."
+    length: -1  # "Number of tokens to generate."
+    temperature: 1.0 # "Close to 0 is more greedy, higher is more random"
+    top_k: 0  # "The number of highest probability vocabulary tokens to keep for top-k-filtering."
     top_p: 0.9  # "The cumulative probability of parameter highest probability vocabulary tokens to keep for nucleus sampling."
     no_cuda: False  # "Avoid using CUDA when available"
     n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
@@ -30,11 +30,11 @@ gpt2:
 opt:
     model_type: opt  # "Model type selected in the list"
     tokenizer: 'facebook/opt-125m'
-    model_name_or_path: '/checkpoints/opt/checkpoint-opt/'  # "The model checkpoint for weights initialization., Use '/' before the first directory."
+    model_name_or_path: '/checkpoints/opt/checkpoint-opt-final/'  # "The model checkpoint for weights initialization., Use '/' before the first directory."
     prompt: 'ham, egg, butter, milk, leek, sour creme, bread, sausage'
-    num_promps: 5  # "Number of prompts to generate."
+    num_promps: 10  # "Number of prompts to generate."
     num_samples: 1  # "Number of samples to generate."
-    length: 800  # "Number of tokens to generate."
+    length: -1  # "Number of tokens to generate."
     temperature: 1.0  # "Close to 0 is more greedy, higher is more random"
     top_k: 0  # "The number of highest probability vocabulary tokens to keep for top-k-filtering."
     top_p: 0.9  # "The cumulative probability of parameter highest probability vocabulary tokens to keep for nucleus sampling."
@@ -56,7 +56,7 @@ llama:
     prompt: 'ham, egg, butter, milk, leek, sour creme, bread, sausage'
     num_promps: 5  # "Number of prompts to generate."
     num_samples: 1  # "Number of samples to generate."
-    length: 600  # "Number of tokens to generate."
+    length: -1  # "Number of tokens to generate."
     temperature: 1.0  # "Close to 0 is more greedy, higher is more random"
     top_k: 0  # "The number of highest probability vocabulary tokens to keep for top-k-filtering."
     top_p: 0.9  # "The cumulative probability of parameter highest probability vocabulary tokens to keep for nucleus sampling."

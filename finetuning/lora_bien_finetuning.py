@@ -114,10 +114,10 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
     model.zero_grad()
-    train_iterator = trange(int(params['lora']['num_train_epochs']), desc="Epoch", disable=False)
+    train_iterator = trange(int(params['lora']['num_train_epochs']), desc="Epoch", disable=False, position=0, leave=True)
     start = time.time()
     for _ in train_iterator:
-        epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=False)
+        epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=False, position=0, leave=True)
         for step, batch in enumerate(epoch_iterator):
             if step % params['lora']['logging_steps'] == 0:
                 # logger.info(f'Step: {step} | Time: {round(time.time() - start, 3)} s')
@@ -220,7 +220,7 @@ def evaluate(params, model, tokenizer, device, prefix, tb_writer=None):
 
     start = time.time()
 
-    for batch in tqdm(eval_dataloader, desc="Evaluating"):
+    for batch in tqdm(eval_dataloader, desc="Evaluating", position=0, leave=True):
         batch = batch.to(device)
 
         with torch.no_grad():
@@ -298,6 +298,9 @@ def trainer_lora(params: DictConfig):
     }
 
     tokenizer.add_special_tokens(special_tokens)
+    tokenizer.pad_token_id = (
+        0  # unk. we want this to be different from the eos token
+    )
     tokenizer.padding_side = "right"  # Left: Allows batched inference, we put right for this task.
 
     model.resize_token_embeddings(len(tokenizer))
