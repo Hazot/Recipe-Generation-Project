@@ -20,13 +20,14 @@
 import argparse
 import logging
 import json
+import os
+
 from tqdm import trange
 
 import torch
 import torch.nn.functional as F
 import numpy as np
 import re
-import hydra
 from omegaconf import DictConfig
 
 from transformers import GPT2Config
@@ -98,8 +99,43 @@ def sample_sequence(model, length, context, tokenizer, num_samples=1, temperatur
                 break
     return generated
 
-@hydra.main(config_path="config", config_name="config_generation")
-def main(params: DictConfig):
+def generate_recipe(ingredients):
+    params = {
+        'data': {
+            'create_txt_files': False,
+            'create_h5_file': False,
+            'train_data_file': 'data/unsupervised_train.txt',
+            'output_dir': 'outputs/',
+            'eval_data_file': 'data/unsupervised_test.txt',
+            'output_dir_to_eval': None
+        },
+        'alg': {
+            'model_type': 'gpt2',
+            'model_name_or_path': '/models/checkpoint-final/',
+            'prompt': 'ham, egg, butter, milk, leek, sour creme, bread, sausage',
+            'num_promps': 10,
+            'num_samples': 1,
+            'length': 600,
+            'temperature': 1.0,
+            'top_k': 0,
+            'top_p': 0.9,
+            'no_cuda': False,
+            'n_gpu': 1
+        },
+        'log': {
+            'seed': 1234,
+            'logging_steps': 50,
+            'save_steps': 50000,
+            'eval_all_checkpoints': False,
+            'overwrite_output_dir': True,
+            'overwrite_cache': False,
+            'aws_bucket': ''
+        }
+    }
+
+    prompt = params['alg']['prompt']
+    if ingredients:
+        prompt = ingredients
 
     # Initializations
     device = torch.device("cuda" if torch.cuda.is_available() and not params['alg']['no_cuda'] else "cpu")
@@ -108,12 +144,17 @@ def main(params: DictConfig):
     set_seed(params=params)
 
     # Update checkpoint path for current local directory
-    params['alg']['model_name_or_path'] = hydra.utils.get_original_cwd() + params['alg']['model_name_or_path']
 
     params['alg']['model_type'] = params['alg']['model_type'].lower()
     model_class, tokenizer_class = MODEL_CLASSES[params['alg']['model_type']]
-    tokenizer = tokenizer_class.from_pretrained(params['alg']['model_name_or_path'])
-    model = model_class.from_pretrained(params['alg']['model_name_or_path'])
+
+    current_dir = os.getcwd()
+    parent_dir = os.path.dirname(current_dir)
+
+    path = parent_dir + params['alg']['model_name_or_path']
+    path = os.path.normpath(path)
+    tokenizer = tokenizer_class.from_pretrained(path)
+    model = model_class.from_pretrained(path)
     model.to(device)
     model.eval()
 
@@ -128,7 +169,7 @@ def main(params: DictConfig):
     for _ in range(params['alg']['num_promps']):
 
         while True:
-            raw_text = params['alg']['prompt'] if params['alg']['prompt'] else input("Comma-separated ingredients, semicolon to close the list >>> ")
+            raw_text = prompt if prompt else input("Comma-separated ingredients, semicolon to close the list >>> ")
             prepared_input = '<RECIPE_START> <INPUT_START> ' + raw_text.replace(',', ' <NEXT_INPUT> ').replace(';', ' <INPUT_END>')
             context_tokens = tokenizer.encode(prepared_input)
             out = sample_sequence(
@@ -144,12 +185,56 @@ def main(params: DictConfig):
             )
             out = out[0, len(context_tokens):].tolist()
             text = tokenizer.decode(out, clean_up_tokenization_spaces=True)
-            if "<RECIPE_END>" not in text:
-                print(text)
-                print("Failed to generate, recipe's too long")
-                continue
+
+
             full_text = prepared_input + text
+
+            if "<RECIPE_END>" not in full_text or "":
+                print(full_text)
+                print("Failed to generate, No <RECIPE_END>")
+                continue
+
+            if "<RECIPE_START>" not in full_text or "":
+                print(full_text)
+                print("Failed to generate, No <RECIPE_START>")
+                continue
+
+
+
+            if "<INPUT_START>" not in full_text or "":
+                print(full_text)
+                print("Failed to generate, No <INPUT_START>")
+                continue
+
+            if "<INPUT_END>" not in full_text or "":
+                print(full_text)
+                print("Failed to generate, No <INPUT_END>")
+                continue
+
+            if "<INGR_START>" not in full_text or "":
+                print(full_text)
+                print("Failed to generate, No <INGR_START>")
+                continue
+
+            if "<INGR_END>" not in full_text or "":
+                print(full_text)
+                print("Failed to generate, No <INGR_END>")
+                continue
+
+            if "<TITLE_START>" not in full_text or "":
+                print(full_text)
+                print("Failed to generate, No <TITLE_START>")
+                continue
+
+            if "<TITLE_END>" not in full_text or "":
+                print(full_text)
+                print("Failed to generate, No <TITLE_END>")
+                continue
+
+            '''
             markdown = re.sub("<RECIPE_(START|END)>", "", full_text)
+
+   
             recipe_n_title = markdown.split("<TITLE_START>")
             title = "# " + recipe_n_title[1].replace("<TITLE_END>", "") + " #\n"
             markdown = recipe_n_title[0].replace("<INPUT_START>", "## Input ingredients ##\n`").replace("<INPUT_END>", "`\n")
@@ -166,10 +251,12 @@ def main(params: DictConfig):
             markdown = re.sub("$ +#", "#", markdown)
             markdown = re.sub("( +`|` +)", "`", markdown)
             print(title+markdown)
-            if params['alg']['prompt']:
+            '''
+            if prompt:
                 break
+
         
-        results.append(title + markdown)
+        results.append(full_text + '\n')
     
     with open('results.json', 'w') as f:
         json.dump(results, f, indent=4)
@@ -178,4 +265,4 @@ def main(params: DictConfig):
 
 
 if __name__ == '__main__':
-    main()
+    generate_recipe("")

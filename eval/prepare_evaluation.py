@@ -18,9 +18,10 @@
 import re
 from eval_generation import *
 
+
 def main():
     file_path = '../data/unsupervised_test.txt'
-    num_recipes = 100
+    num_recipes = 20
     recipes_ingredients = []
 
     def getIngredients(recipe):
@@ -34,16 +35,14 @@ def main():
     with open(file_path, 'r', encoding='utf-8') as input_file:
         print(file_path + "The file was opened !")
 
-        with open('ingredient_list.txt', 'w') as output_file:
+        with open('recipe_list.txt', 'w') as output_file:
             for i, line in enumerate(input_file):
                 if (i < num_recipes):
                     ingredients = getIngredients(line)
                     generated_recipes = generate_recipe(ingredients=ingredients)
-
-                    output_file.write(ingredients + "\n")
                     for generated_recipe in generated_recipes:
-                        output_file.write(generated_recipe + "\n")
-
+                        output_file.write(generated_recipe)
+                    print("wrote in recipe_list.txt" )
 
 if __name__ == '__main__':
     main()
