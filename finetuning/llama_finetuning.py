@@ -266,11 +266,21 @@ def trainer_llama(params: DictConfig):
                                                    do_lower_case=params['llama']['do_lower_case'],
                                                    truncation_side='left')
 
+    custom_device_map = {'model.embed_tokens': 0, 'model.layers.0': 0, 'model.layers.1': 0, 'model.layers.2': 0,
+                         'model.layers.3': 0, 'model.layers.4': 0, 'model.layers.5': 0, 'model.layers.6': 0,
+                         'model.layers.7': 0, 'model.layers.8': 0, 'model.layers.9': 0, 'model.layers.10': 0,
+                         'model.layers.11': 0, 'model.layers.12': 0, 'model.layers.13': 0, 'model.layers.14': 0,
+                         'model.layers.15': 0, 'model.layers.16': 0, 'model.layers.17': 0, 'model.layers.18': 0,
+                         'model.layers.19': 0, 'model.layers.20': 0, 'model.layers.21': 0, 'model.layers.22': 0,
+                         'model.layers.23': 0, 'model.layers.24': 0, 'model.layers.25': 0,
+                         'model.layers.26': 0, 'model.layers.27': 0, 'model.layers.28': 0,
+                         'model.layers.29': 0, 'model.layers.30': 0, 'model.layers.31': 0,
+                         'model.norm': 0, 'lm_head': 0}
+
     model = LlamaForCausalLM.from_pretrained(
-        params['lora']['model_name_or_path'],
-        load_in_8bit=True,
+        params['llama']['model_name_or_path'],
         torch_dtype=torch.float16,
-        device_map='auto'
+        device_map=custom_device_map
     )
 
     special_tokens = {
