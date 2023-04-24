@@ -156,11 +156,11 @@ def generate_recipes_gpt2(params: DictConfig):
             )
             out = out[0, len(context_tokens):].tolist()
             text = tokenizer.decode(out, clean_up_tokenization_spaces=True)
-            if "<RECIPE_END>" not in text:
-                print(text)
+            full_text = prepared_input + text
+            if "<RECIPE_END>" not in full_text:
+                print(full_text)
                 print("Failed to generate, recipe's too long")
                 continue
-            full_text = prepared_input + text
             markdown = re.sub("<RECIPE_(START|END)>", "", full_text)
             recipe_n_title = markdown.split("<TITLE_START>")
             title = "# " + recipe_n_title[1].replace("<TITLE_END>", "") + " #\n"

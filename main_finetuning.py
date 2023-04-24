@@ -66,9 +66,6 @@ def main(params: DictConfig):
 
     elif params['main']['model_type'] == 'lora':
 
-        params['lora']['tokenizer_name'] = 'huggyllama/llama-7b'
-        params['lora']['model_name_or_path'] = 'huggyllama/llama-7b'
-
         params['main']['create_valid'] = params['lora']['create_valid']
         create_dataset(params=params)
 

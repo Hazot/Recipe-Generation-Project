@@ -33,9 +33,7 @@ from transformers import LlamaForCausalLM, LlamaTokenizer, AutoModelForCausalLM
 def trainer_lora(params: DictConfig):
     # model/data params
     base_model = params['lora']['model_name_or_path']
-    # data_path = "data/unsupervised_llama_valid.h5"
-    data_path = hydra.utils.get_original_cwd() + "/data/llama_recipes.json"
-    # pathx = hydra.utils.get_original_cwd() + "/data/unsupervised_llama.h5"
+    data_path = hydra.utils.get_original_cwd() + "/data/llama_recipes_max_test.json"
     output_dir = params['lora']['output_dir']
 
     # training hyperparams
@@ -66,20 +64,13 @@ def trainer_lora(params: DictConfig):
     device = torch.device("cuda" if torch.cuda.is_available() and not params['lora']['no_cuda'] else "cpu")
     params['lora']['n_gpu'] = torch.cuda.device_count()
 
-    # model = LlamaForCausalLM.from_pretrained(
-    #     base_model,
-    #     load_in_8bit=True,
-    #     # load_in_8bit_fp32_cpu_offload=True,
-    #     torch_dtype=torch.float16,
-    #     device_map='auto'
-    # )  # takes 5 minutes to load with no feedback whatsoever
-
-    model = AutoModelForCausalLM.from_pretrained(
-        params['opt']['model_name_or_path']
-        # load_in_8bit=True,
-        # torch_dtype=torch.float16,
-        # device_map='auto'
-    )
+    model = LlamaForCausalLM.from_pretrained(
+        base_model,
+        load_in_8bit=True,
+        load_in_8bit_fp32_cpu_offload=True,
+        torch_dtype=torch.float16,
+        device_map='auto'
+    )  # takes 5 minutes to load with no feedback whatsoever
 
     special_tokens = {
         "additional_special_tokens": [
@@ -152,24 +143,22 @@ def trainer_lora(params: DictConfig):
             ]  # could be sped up, probably
         return tokenized_full_prompt
 
-    # model = prepare_model_for_int8_training(model)
-    #
-    # config = LoraConfig(
-    #     r=lora_r,
-    #     lora_alpha=lora_alpha,
-    #     target_modules=lora_target_modules,
-    #     lora_dropout=lora_dropout,
-    #     bias="none",
-    #     task_type="CAUSAL_LM",
-    # )
-    # model = get_peft_model(model, config)
+    model = prepare_model_for_int8_training(model)
+
+    config = LoraConfig(
+        r=lora_r,
+        lora_alpha=lora_alpha,
+        target_modules=lora_target_modules,
+        lora_dropout=lora_dropout,
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
+    model = get_peft_model(model, config)
 
     if data_path.endswith(".json") or data_path.endswith(".jsonl"):
         data = load_dataset("json", data_files=data_path)
     else:
         data = load_dataset(data_path)
-
-    # datax = Dataset.from_pandas(pd.read_hdf(pathx, key='train'))
 
     if resume_from_checkpoint:
         # Check the available weights and load them
@@ -191,7 +180,7 @@ def trainer_lora(params: DictConfig):
         else:
             print(f"Checkpoint {checkpoint_name} not found")
 
-    # model.print_trainable_parameters()  # Be more transparent about the % of trainable params.
+    model.print_trainable_parameters()  # Be more transparent about the % of trainable params.
 
     if val_set_size > 0:
         train_val = data["train"].train_test_split(

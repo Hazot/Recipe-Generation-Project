@@ -18,7 +18,7 @@ textblob
 spacy
 scrapy
 pymongo
-torch
+# torch
 transformers
 h5py
 boto3
@@ -28,5 +28,5 @@ sentencepiece
 git+https://github.com/huggingface/transformers.git
 peft
 fire
-bitsandbytes
 accelerate
+bitsandbytes

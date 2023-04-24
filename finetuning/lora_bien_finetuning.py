@@ -268,6 +268,7 @@ def trainer_lora(params: DictConfig):
     device = torch.device("cuda" if torch.cuda.is_available() and not params['lora']['no_cuda'] else "cpu")
     params['lora']['n_gpu'] = torch.cuda.device_count()
 
+
     tokenizer = LlamaTokenizer.from_pretrained(params['lora']['tokenizer_name'],
                                                do_lower_case=params['lora']['do_lower_case'],
                                                truncation_side='left')
