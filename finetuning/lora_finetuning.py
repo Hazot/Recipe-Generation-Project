@@ -67,7 +67,7 @@ def trainer_lora(params: DictConfig):
     model = LlamaForCausalLM.from_pretrained(
         base_model,
         load_in_8bit=True,
-        load_in_8bit_fp32_cpu_offload=True,
+        # load_in_8bit_fp32_cpu_offload=True,
         torch_dtype=torch.float16,
         device_map='auto'
     )  # takes 5 minutes to load with no feedback whatsoever
