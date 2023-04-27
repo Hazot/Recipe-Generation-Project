@@ -41,7 +41,8 @@ MAX_LENGTH = int(10000)  # Hardcoded max length to avoid infinite loop
 
 MODEL_CLASSES = {
     'gpt2': (GPT2LMHeadModel, GPT2Tokenizer),
-    'opt': (AutoModelForCausalLM, AutoTokenizer)
+    'opt': (AutoModelForCausalLM, AutoTokenizer),
+    'llama': (LlamaForCausalLM, LlamaTokenizer)
 }
 
 

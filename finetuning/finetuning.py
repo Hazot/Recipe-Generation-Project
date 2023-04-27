@@ -29,6 +29,29 @@ from transformers import (WEIGHTS_NAME, get_linear_schedule_with_warmup, GPT2Con
 
 logger = logging.getLogger(__name__)
 
+MODEL_CLASSES = {
+    'gpt2': (GPT2LMHeadModel, GPT2Tokenizer),
+    'opt': (AutoModelForCausalLM, AutoTokenizer),
+    'llama': (LlamaForCausalLM, LlamaTokenizer)
+}
+
+
+def initialize_models(params):
+    model_class, tokenizer_class = MODEL_CLASSES[params['main']['model_type']]
+
+    if params['main']['model_type'] is 'opt':
+        use_fast = False
+    else:
+        use_fast = True
+
+    tokenizer_class.from_pretrained(params['main']['tokenizer_name'],
+                                    do_lower_case=params['main']['do_lower_case'],
+                                    use_fast=use_fast,
+                                    truncation_side=params['main']['truncation_side']
+                                    )
+    model = model_class.from_pretrained(params['main']['model_name_or_path'])
+    model.to(params['main']['device'])
+    return model, tokenizer
 
 def tardir(path, tar_name):
     with tarfile.open(tar_name, "w") as tar_handle:
@@ -88,6 +111,8 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
     scheduler = get_linear_schedule_with_warmup(optimizer,
                                                 num_warmup_steps=params['main']['warmup_steps'],
                                                 num_training_steps=t_total)
+    optimizer.to(device)
+    scheduler.to(device)
 
     # Train!
     logger.info("***** Running training *****")
@@ -250,10 +275,6 @@ def trainer_finetuning(params: DictConfig):
                          "--eval_data_file or remove the --do_eval argument.")
 
     output_dir = params['main']['output_dir']
-    if os.path.exists(output_dir) and os.listdir(output_dir) \
-            and params['main']['do_train'] and not params['main']['overwrite_output_dir']:
-        raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to "
-                         "overcome.".format(output_dir))
 
 
     # Initializations
