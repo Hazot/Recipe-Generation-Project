@@ -2,43 +2,55 @@ import h5py
 from hydra.utils import get_original_cwd
 from tqdm import tqdm
 import numpy as np
+import os
 
 from transformers import GPT2Tokenizer, LlamaTokenizer, AutoTokenizer
 
 
 def tokenize(params):
+
+    local_path = os.path.normpath(get_original_cwd())
+    dataset_h5_path = local_path + f"/data/unsupervised_{params['main']['model_type']}.h5"
+
+    if dataset_h5_path in os.listdir(local_path + '/data/'):
+        print('Dataset already in HDF5 format. Skipping conversion.')
+        return
+
+    if local_path + '/data/unsupervised_train_filtered.txt' not in os.listdir(local_path + '/data/'):
+        raise Exception("unsupervised_train_filtered.txt not found. Please put this file in the '/data/' folder")
+
+    if local_path + '/data/unsupervised_test_filtered.txt' not in os.listdir(local_path + '/data/'):
+        raise Exception("unsupervised_test_filtered.txt not found. Please put this file in the '/data/' folder")
+
     if params['main']['model_type'] == 'gpt2':
         tokenizer = GPT2Tokenizer.from_pretrained(
-            params['gpt2']['tokenizer_name'],
-            do_lower_case=params['gpt2']['do_lower_case'],
-            truncation_side='left'
+            params['main']['tokenizer_name'],
+            do_lower_case=params['main']['do_lower_case'],
+            truncation_side=params['main']['truncation_side']
         )
         max_token_len = tokenizer.max_model_input_sizes["gpt2"]
     elif params['main']['model_type'] == 'opt':
         tokenizer = AutoTokenizer.from_pretrained(
-            params['opt']['tokenizer_name'],
+            params['main']['tokenizer_name'],
             use_fast=False,
-            do_lower_case=params['opt']['do_lower_case'],
-            truncation_side='left'
+            do_lower_case=params['main']['do_lower_case'],
+            truncation_side=params['main']['truncation_side']
         )
         max_token_len = tokenizer.max_model_input_sizes["gpt2"]
-    elif params['main']['model_type'] == 'llama':
+    elif params['main']['model_type'] == 'llama' or params['main']['model_type'] == 'lora':
         tokenizer = LlamaTokenizer.from_pretrained(
-            params['llama']['tokenizer_name'],
-            do_lower_case=params['llama']['do_lower_case'],
-            truncation_side='left'
+            params['main']['tokenizer_name'],
+            do_lower_case=params['main']['do_lower_case'],
+            truncation_side=params['main']['truncation_side']
         )
         max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
-    elif params['main']['model_type'] == 'lora':
-        tokenizer = LlamaTokenizer.from_pretrained(
-            params['lora']['tokenizer_name'],
-            do_lower_case=params['lora']['do_lower_case'],
-            truncation_side='left'
+        tokenizer.pad_token_id = (
+            0  # unk. we want this to be different from the eos token
         )
-        max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
     else:
         raise Exception("Unknown model type")
 
+    # Add special tokens to the tokenizer
     special_tokens = {
         "additional_special_tokens": [
             "<TITLE_START>",
@@ -56,22 +68,21 @@ def tokenize(params):
             "<NEXT_INPUT>"
         ]
     }
-
     tokenizer.add_special_tokens(special_tokens)
-
     end_token_id = tokenizer.convert_tokens_to_ids(["< RECIPE_END>"])[0]
 
-    original_cwd = get_original_cwd()
+    hf = h5py.File(dataset_h5_path, "w")
 
-    hf = h5py.File(original_cwd + "/data/unsupervised_" + params['main']['model_type'] + ".h5", "w")
-
+    # Create a validation key if specified
     if params['main']['create_valid']:
         datasets = ["test", "valid", "train"]
     else:
         datasets = ["test", "train"]
+
+    # Create a dataset for each split of the data
     for filename in datasets:
         out_np = []
-        path = original_cwd + "/data/unsupervised_" + filename + "_filtered.txt"
+        path = local_path + "/data/unsupervised_" + filename + "_filtered.txt"
         data = open(path, "r")
         print("Reading file:" + path)
         num = 0

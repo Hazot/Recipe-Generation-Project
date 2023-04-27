@@ -7,26 +7,6 @@ This repository uses:
 
 To provide complete pipeline starting with organized and cleaned dataset, and finishing with fine-tuned gpt-2 recipe generator
 
-## Run
-
-### Running on computer
-Change directory into `generation` 
-```
-cd generation
-```
-
-
-and then for `gpt-2-small`, run:
-```
-python generation/run_lm_finetuning.py --train_data_file data/unsupervised_train.txt --output_dir generation/models/ --model_name_or_path gpt2 --tokenizer_name gpt2 --do_train True --per_gpu_train_batch_size=3 --per_gpu_eval_batch_size=3 --save_steps=25000 --logging_steps=25 --learning_rate=5e-5
-```
-
-### Running on cluster
-
-```
---account=def-sponsor00
-```
-
 
 ## Data
 Recipe1M dataset is used and enhanced with following tags:

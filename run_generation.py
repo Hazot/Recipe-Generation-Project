@@ -2,8 +2,7 @@ import hydra
 from omegaconf import DictConfig
 import logging
 
-from generation.gpt2_generation import generate_recipes_gpt2
-from generation.opt_generation import generate_recipes_opt
+from generation.generation import generate_recipes
 
 logger = logging.getLogger(__name__)
 
@@ -19,28 +18,19 @@ def main(params: DictConfig):
     logger.info("Training/evaluation parameters %s", params)
 
     if params['main']['model_type'] == 'gpt2':
-
-        results = generate_recipes_gpt2(params=params)
-
-        # logger.info(results)
-        logger.info("Generation successfully finished!")
-
+        params['main'].update(params['gpt2'])
+        print(params['main'])
     elif params['main']['model_type'] == 'opt':
-
-        results = generate_recipes_opt(params=params)
-
-        # logger.info(results)
-        logger.info("Generation successfully finished!")
-
+        params['main'].update(params['opt'])
     elif params['main']['model_type'] == 'llama':
-
-        results = generate_recipes_gpt2(params=params)
-
-        # logger.info(results)
-        logger.info("Generation successfully finished!")
-
+        params['main'].update(params['llama'])
     else:
         raise Exception("Unknown model type")
+
+    generate_recipes(params=params)
+
+    # logger.info(results)
+    logger.info("Generation successfully finished!")
 
 
 if __name__ == "__main__":

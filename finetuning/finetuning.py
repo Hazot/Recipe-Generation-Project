@@ -57,60 +57,60 @@ class TextDataset(Dataset):
 
 
 def load_and_cache_examples(params, tokenizer, evaluate=False):
-    dataset = TextDataset(tokenizer, file_path="test" if evaluate else "train", block_size=params['gpt2']['block_size'])
+    dataset = TextDataset(tokenizer, file_path="test" if evaluate else "train", block_size=params['main']['block_size'])
     return dataset
 
 
 def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
     """ Train the model """
 
-    params['gpt2']['train_batch_size'] = params['gpt2']['per_gpu_train_batch_size'] * max(1, params['gpt2']['n_gpu'])
+    params['main']['train_batch_size'] = params['main']['per_gpu_train_batch_size'] * max(1, params['main']['n_gpu'])
     train_sampler = RandomSampler(train_dataset)
-    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=params['gpt2']['train_batch_size'])
+    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=params['main']['train_batch_size'])
 
-    if params['gpt2']['max_steps'] > 0:
-        t_total = params['gpt2']['max_steps']
-        params['gpt2']['num_train_epochs'] = params['gpt2']['max_steps'] // \
-                                            (len(train_dataloader) // params['gpt2']['gradient_accumulation_steps']) + 1
+    if params['main']['max_steps'] > 0:
+        t_total = params['main']['max_steps']
+        params['main']['num_train_epochs'] = params['main']['max_steps'] // \
+                                            (len(train_dataloader) // params['main']['gradient_accumulation_steps']) + 1
     else:
-        t_total = len(train_dataloader) // params['gpt2']['gradient_accumulation_steps'] * \
-                  params['gpt2']['num_train_epochs']
+        t_total = len(train_dataloader) // params['main']['gradient_accumulation_steps'] * \
+                  params['main']['num_train_epochs']
 
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ['bias', 'LayerNorm.weight']  # Types of parameters that do not decay
     optimizer_grouped_parameters = [
         {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-         'weight_decay': params['gpt2']['weight_decay']},
+         'weight_decay': params['main']['weight_decay']},
         {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
          'weight_decay': 0.0}
         ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=params['gpt2']['learning_rate'], eps=params['gpt2']['adam_epsilon'])
+    optimizer = AdamW(optimizer_grouped_parameters, lr=params['main']['learning_rate'], eps=params['main']['adam_epsilon'])
     scheduler = get_linear_schedule_with_warmup(optimizer,
-                                                num_warmup_steps=params['gpt2']['warmup_steps'],
+                                                num_warmup_steps=params['main']['warmup_steps'],
                                                 num_training_steps=t_total)
 
     # Train!
     logger.info("***** Running training *****")
     logger.info(f"  Num examples = {len(train_dataset)}")
-    logger.info(f"  Num of recipes divided into blocks of tokens of size={params['gpt2']['block_size']}")
-    logger.info(f"  Num Epochs = {params['gpt2']['num_train_epochs']}")
-    logger.info(f"  Instantaneous batch size per GPU = {params['gpt2']['per_gpu_train_batch_size']}")
+    logger.info(f"  Num of recipes divided into blocks of tokens of size={params['main']['block_size']}")
+    logger.info(f"  Num Epochs = {params['main']['num_train_epochs']}")
+    logger.info(f"  Instantaneous batch size per GPU = {params['main']['per_gpu_train_batch_size']}")
     logger.info(
-        f"  Total train batch size = {params['gpt2']['train_batch_size'] * params['gpt2']['gradient_accumulation_steps']}"
+        f"  Total train batch size = {params['main']['train_batch_size'] * params['main']['gradient_accumulation_steps']}"
     )
-    logger.info(f"  Gradient Accumulation steps = {params['gpt2']['gradient_accumulation_steps']}")
+    logger.info(f"  Gradient Accumulation steps = {params['main']['gradient_accumulation_steps']}")
     logger.info(f"  Total optimization steps = {t_total}")
     logger.info(f"  Training started!")
 
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
     model.zero_grad()
-    train_iterator = trange(int(params['gpt2']['num_train_epochs']), desc="Epoch", disable=False, position=0, leave=True)
+    train_iterator = trange(int(params['main']['num_train_epochs']), desc="Epoch", disable=False, position=0, leave=True)
     start = time.time()
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=False, position=0, leave=True)
         for step, batch in enumerate(epoch_iterator):
-            if step % params['gpt2']['logging_steps'] == 0:
+            if step % params['main']['logging_steps'] == 0:
                 # logger.info(f'Step: {step} | Time: {round(time.time() - start, 3)} s')
                 lol = round(time.time() - start)
             inputs, labels = (batch, batch)
@@ -121,8 +121,8 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
             outputs = model(inputs, labels=labels)
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
 
-            if params['gpt2']['gradient_accumulation_steps'] > 1:
-                loss = loss / params['gpt2']['gradient_accumulation_steps']
+            if params['main']['gradient_accumulation_steps'] > 1:
+                loss = loss / params['main']['gradient_accumulation_steps']
 
             # with amp.scale_loss(loss, optimizer) as scaled_loss:
             #     scaled_loss.backward()
@@ -130,25 +130,25 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
             loss.backward()
 
             tr_loss += loss.item()
-            if step % params['gpt2']['gradient_accumulation_steps'] == 0:
-                torch.nn.utils.clip_grad_norm_(optimizer.param_groups[0]['params'], params['gpt2']['max_grad_norm'])
-                torch.nn.utils.clip_grad_norm_(optimizer.param_groups[1]['params'], params['gpt2']['max_grad_norm'])
+            if step % params['main']['gradient_accumulation_steps'] == 0:
+                torch.nn.utils.clip_grad_norm_(optimizer.param_groups[0]['params'], params['main']['max_grad_norm'])
+                torch.nn.utils.clip_grad_norm_(optimizer.param_groups[1]['params'], params['main']['max_grad_norm'])
                 optimizer.step()
                 scheduler.step()  # Update learning rate schedule
                 model.zero_grad()
                 global_step += 1
 
-                if params['gpt2']['logging_steps'] > 0 and global_step % params['gpt2']['logging_steps'] == 0:
+                if params['main']['logging_steps'] > 0 and global_step % params['main']['logging_steps'] == 0:
                     # Log metrics
                     # tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
                     tb_writer.add_scalar('Scheduler Learning Rate', scheduler.get_last_lr()[0], global_step)
-                    tb_writer.add_scalar('Loss', (tr_loss - logging_loss) / params['gpt2']['logging_steps'], global_step)
-                    tb_writer.add_scalar('Time', (time.time() - start) / params['gpt2']['logging_steps'], global_step)
+                    tb_writer.add_scalar('Loss', (tr_loss - logging_loss) / params['main']['logging_steps'], global_step)
+                    tb_writer.add_scalar('Time', (time.time() - start) / params['main']['logging_steps'], global_step)
                     logging_loss = tr_loss
 
-                if params['gpt2']['save_steps'] > 0 and global_step % params['gpt2']['save_steps'] == 0:
+                if params['main']['save_steps'] > 0 and global_step % params['main']['save_steps'] == 0:
                     # Save model checkpoint
-                    output_dir = os.path.join(params['gpt2']['output_dir'], 'checkpoint-{}'.format(global_step))
+                    output_dir = os.path.join(params['main']['output_dir'], 'checkpoint-{}'.format(global_step))
 
                     if not os.path.exists(output_dir):
                         os.makedirs(output_dir)
@@ -163,24 +163,24 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
                     torch.save(params, os.path.join(output_dir, 'training_params.bin'))
                     tokenizer.save_pretrained(output_dir)
                     logger.info("Saving model checkpoint to %s", output_dir)
-                    if params['gpt2']['evaluate_during_training']:  # Only evaluate when single GPU otherwise metrics may not average well
+                    if params['main']['evaluate_during_training']:  # Only evaluate when single GPU otherwise metrics may not average well
                         results = evaluate(params, model, tokenizer, device, prefix=global_step, tb_writer=tb_writer)
                         for key, value in results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
-                    if params['gpt2']['aws_bucket']:
+                    if params['main']['aws_bucket']:
                         tgz = "checkpoint-{}.tar".format(global_step)
                         tardir(output_dir, tgz)
                         shutil.rmtree(output_dir)
                         s3 = boto3.resource('s3')
-                        s3.Object(params['gpt2']['aws_bucket'], "checkpoints-gpt-medium/"+tgz).upload_file(tgz)
+                        s3.Object(params['main']['aws_bucket'], "checkpoints-gpt-medium/"+tgz).upload_file(tgz)
                         os.remove(tgz)
 
-            if params['gpt2']['max_steps'] > 0 and global_step > params['gpt2']['max_steps']:
+            if params['main']['max_steps'] > 0 and global_step > params['main']['max_steps']:
                 epoch_iterator.close()
                 break
             del inputs, labels, outputs, loss
             torch.cuda.empty_cache()
-        if params['gpt2']['max_steps'] > 0 and global_step > params['gpt2']['max_steps']:
+        if params['main']['max_steps'] > 0 and global_step > params['main']['max_steps']:
             train_iterator.close()
             break
 
@@ -189,22 +189,22 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
 
 def evaluate(params, model, tokenizer, device, prefix, tb_writer=None):
     # Loop to handle MNLI double evaluation (matched, mis-matched)
-    eval_output_dir = params['gpt2']['output_dir']
+    eval_output_dir = params['main']['output_dir']
 
     eval_dataset = load_and_cache_examples(params, tokenizer, evaluate=True)
 
     if not os.path.exists(eval_output_dir):
         os.makedirs(eval_output_dir)
 
-    params['gpt2']['eval_batch_size'] = params['gpt2']['per_gpu_eval_batch_size'] * max(1, params['gpt2']['n_gpu'])
+    params['main']['eval_batch_size'] = params['main']['per_gpu_eval_batch_size'] * max(1, params['main']['n_gpu'])
     # Note that DistributedSampler samples randomly
     eval_sampler = SequentialSampler(eval_dataset)
-    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=params['gpt2']['eval_batch_size'])
+    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=params['main']['eval_batch_size'])
 
     # Eval!
     logger.info("***** Running evaluation at step: {} *****".format(prefix))
     logger.info("  Num examples = %d", len(eval_dataset))
-    logger.info("  Batch size = %d", params['gpt2']['eval_batch_size'])
+    logger.info("  Batch size = %d", params['main']['eval_batch_size'])
     total_eval_loss = 0.0
     nb_eval_steps = 0
     model.eval()
@@ -243,33 +243,33 @@ def evaluate(params, model, tokenizer, device, prefix, tb_writer=None):
     return result
 
 
-def trainer_gpt2(params: DictConfig):
+def trainer_finetuning(params: DictConfig):
     # Check for configuration problems
-    if params['gpt2']['eval_data_file'] is None and params['gpt2']['do_eval']:
+    if params['main']['eval_data_file'] is None and params['main']['do_eval']:
         raise ValueError("Cannot do evaluation without an evaluation data file. Either supply a file to "
                          "--eval_data_file or remove the --do_eval argument.")
 
-    output_dir = params['gpt2']['output_dir']
+    output_dir = params['main']['output_dir']
     if os.path.exists(output_dir) and os.listdir(output_dir) \
-            and params['gpt2']['do_train'] and not params['gpt2']['overwrite_output_dir']:
+            and params['main']['do_train'] and not params['main']['overwrite_output_dir']:
         raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to "
                          "overcome.".format(output_dir))
 
 
     # Initializations
-    device = torch.device("cuda" if torch.cuda.is_available() and not params['gpt2']['no_cuda'] else "cpu")
-    params['gpt2']['n_gpu'] = torch.cuda.device_count()
+    device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")
+    params['main']['n_gpu'] = torch.cuda.device_count()
 
     model_class = GPT2LMHeadModel
     tokenizer_class = GPT2Tokenizer
-    if params['gpt2']['tokenizer_name']:
-        tokenizer = tokenizer_class.from_pretrained(params['gpt2']['tokenizer_name'],
-                                                    do_lower_case=params['gpt2']['do_lower_case'])
+    if params['main']['tokenizer_name']:
+        tokenizer = tokenizer_class.from_pretrained(params['main']['tokenizer_name'],
+                                                    do_lower_case=params['main']['do_lower_case'])
     else:
-        tokenizer = tokenizer_class.from_pretrained(params['gpt2']['model_name_or_path'],
-                                                    do_lower_case=params['gpt2']['do_lower_case'])
+        tokenizer = tokenizer_class.from_pretrained(params['main']['model_name_or_path'],
+                                                    do_lower_case=params['main']['do_lower_case'])
 
-    model = model_class.from_pretrained(params['gpt2']['model_name_or_path'])
+    model = model_class.from_pretrained(params['main']['model_name_or_path'])
     special_tokens = {
         "additional_special_tokens": [
             "<TITLE_START>",
@@ -291,9 +291,9 @@ def trainer_gpt2(params: DictConfig):
     tokenizer.add_special_tokens(special_tokens)
     model.resize_token_embeddings(len(tokenizer))
 
-    if params['gpt2']['block_size'] <= 0:
-        params['gpt2']['block_size'] = tokenizer.max_len_single_sentence  # Our input block size will be the max possible
-    params['gpt2']['block_size'] = min(params['gpt2']['block_size'], tokenizer.max_len_single_sentence)
+    if params['main']['block_size'] <= 0:
+        params['main']['block_size'] = tokenizer.max_len_single_sentence  # Our input block size will be the max possible
+    params['main']['block_size'] = min(params['main']['block_size'], tokenizer.max_len_single_sentence)
     model.to(device)
 
     # Setup logging
@@ -307,7 +307,7 @@ def trainer_gpt2(params: DictConfig):
     tb_writer = SummaryWriter(log_dir='tensorboard_logs/tensorboard_event_file')
 
     # Training
-    if params['gpt2']['do_train']:
+    if params['main']['do_train']:
         train_dataset = load_and_cache_examples(params, tokenizer, evaluate=False)
 
         print(len(train_dataset.examples))
@@ -315,9 +315,9 @@ def trainer_gpt2(params: DictConfig):
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
     # Saving best-practices: if you use save_pretrained for the model and tokenizer, you can reload them using from_pretrained()
-    if params['gpt2']['do_train']:
+    if params['main']['do_train']:
         # Create output directory if needed
-        output_dir = os.path.join(params['gpt2']['output_dir'], 'checkpoint-{}'.format(global_step))
+        output_dir = os.path.join(params['main']['output_dir'], 'checkpoint-{}'.format(global_step))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -334,15 +334,15 @@ def trainer_gpt2(params: DictConfig):
 
         # Load a trained model and vocabulary that you have fine-tuned
         model = model_class.from_pretrained(output_dir)
-        tokenizer = tokenizer_class.from_pretrained(output_dir, do_lower_case=params['gpt2']['do_lower_case'])
+        tokenizer = tokenizer_class.from_pretrained(output_dir, do_lower_case=params['main']['do_lower_case'])
         model.to(device)
 
     # Evaluation
-    # if params['gpt2'']['do_train']:
+    # if params['main''']['do_train']:
     results = {}
-    if params['gpt2']['do_eval']:
+    if params['main']['do_eval']:
         checkpoints = [output_dir]
-        if params['gpt2']['eval_all_checkpoints']:
+        if params['main']['eval_all_checkpoints']:
             checkpoints = list(
                 os.path.dirname(c) for c in sorted(glob.glob(output_dir + '/**/' + WEIGHTS_NAME, recursive=True)))
             logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)  # Reduce logging
@@ -354,7 +354,7 @@ def trainer_gpt2(params: DictConfig):
             result = evaluate(params, model, tokenizer, device, prefix=global_step, tb_writer=tb_writer)
             result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
             results.update(result)
-    # elif params['gpt2'']['output_dir_to_eval']:
+    # elif params['main''']['output_dir_to_eval']:
     #     raise ValueError("Cannot do evaluation without an evaluation data file. Either supply a file to "
     #                      "--eval_data_file or remove the --do_eval argument.")
 

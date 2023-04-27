@@ -41,14 +41,15 @@ MAX_LENGTH = int(10000)  # Hardcoded max length to avoid infinite loop
 
 MODEL_CLASSES = {
     'gpt2': (GPT2LMHeadModel, GPT2Tokenizer),
+    'opt': (AutoModelForCausalLM, AutoTokenizer)
 }
 
 
 def set_seed(params):
-    np.random.seed(params['gpt2']['seed'])
-    torch.manual_seed(params['gpt2']['seed'])
-    if params['gpt2']['n_gpu'] > 0:
-        torch.cuda.manual_seed_all(params['gpt2']['seed'])
+    np.random.seed(params['main']['seed'])
+    torch.manual_seed(params['main']['seed'])
+    if params['main']['n_gpu'] > 0:
+        torch.cuda.manual_seed_all(params['main']['seed'])
 
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):
@@ -111,35 +112,38 @@ def sample_sequence(
     return generated
 
 
-def generate_recipes_gpt2(params: DictConfig):
+def generate_recipes(params: DictConfig):
     # Initializations
-    device = torch.device("cuda" if torch.cuda.is_available() and not params['gpt2']['no_cuda'] else "cpu")
-    params['gpt2']['n_gpu'] = torch.cuda.device_count()
+    device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")
+    params['main']['n_gpu'] = torch.cuda.device_count()
 
     set_seed(params=params)
 
     # Update checkpoint path for current local directory
-    params['gpt2']['model_name_or_path'] = hydra.utils.get_original_cwd() + params['gpt2']['model_name_or_path']
+    params['main']['model_name_or_path'] = hydra.utils.get_original_cwd() + params['main']['model_name_or_path']
 
-    params['gpt2']['model_type'] = params['gpt2']['model_type'].lower()
-    model_class, tokenizer_class = MODEL_CLASSES[params['gpt2']['model_type']]
-    tokenizer = tokenizer_class.from_pretrained(params['gpt2']['model_name_or_path'])
-    model = model_class.from_pretrained(params['gpt2']['model_name_or_path'])
+    params['main']['model_type'] = params['main']['model_type'].lower()
+    model_class, tokenizer_class = MODEL_CLASSES[params['main']['model_type']]
+    tokenizer = tokenizer_class.from_pretrained(params['main']['model_name_or_path'], use_fast=False, do_lower_case=False, truncation_side='left')
+    model = model_class.from_pretrained(params['main']['model_name_or_path'])
     model.to(device)
     model.eval()
 
-    if params['gpt2']['length'] < 0 and model.config.max_position_embeddings > 0:
-        params['gpt2']['length'] = model.config.max_position_embeddings
-    elif 0 < model.config.max_position_embeddings < params['gpt2']['length']:
-        params['gpt2']['length'] = model.config.max_position_embeddings  # No generation bigger than model size
-    elif params['gpt2']['length'] < 0:
-        params['gpt2']['length'] = MAX_LENGTH  # avoid infinite loop
+    if params['main']['length'] < 0 and model.config.max_position_embeddings > 0:
+        params['main']['length'] = model.config.max_position_embeddings
+    elif 0 < model.config.max_position_embeddings < params['main']['length']:
+        params['main']['length'] = model.config.max_position_embeddings  # No generation bigger than model size
+    elif params['main']['length'] < 0:
+        params['main']['length'] = MAX_LENGTH  # avoid infinite loop
 
     results = []
-    for _ in range(params['gpt2']['num_promps']):
+
+    print("=====================================================================================================")
+    print("Generating recipes...")
+    for _ in range(params['main']['num_promps']):
 
         while True:
-            raw_text = params['gpt2']['prompt'] if params['gpt2']['prompt'] else input(
+            raw_text = params['main']['prompt'] if params['main']['prompt'] else input(
                 "Comma-separated ingredients, semicolon to close the list >>> ")
             prepared_input = '<RECIPE_START> <INPUT_START> ' + raw_text.replace(',', ' <NEXT_INPUT> ').replace(';', ' <INPUT_END>')
             context_tokens = tokenizer.encode(prepared_input)
@@ -147,29 +151,25 @@ def generate_recipes_gpt2(params: DictConfig):
                 model=model,
                 context=context_tokens,
                 tokenizer=tokenizer,
-                num_samples=params['gpt2']['num_samples'],
-                length=params['gpt2']['length'],
-                temperature=params['gpt2']['temperature'],
-                top_k=params['gpt2']['top_k'],
-                top_p=params['gpt2']['top_p'],
+                num_samples=params['main']['num_samples'],
+                length=params['main']['length'],
+                temperature=params['main']['temperature'],
+                top_k=params['main']['top_k'],
+                top_p=params['main']['top_p'],
                 device=device
             )
             out = out[0, len(context_tokens):].tolist()
             text = tokenizer.decode(out, clean_up_tokenization_spaces=True)
-            full_text = prepared_input + text
-            if "<RECIPE_END>" not in full_text:
-                print(full_text)
+            if "<RECIPE_END>" not in text:
+                print(text)
                 print("Failed to generate, recipe's too long")
                 continue
+            full_text = prepared_input + text
             markdown = re.sub("<RECIPE_(START|END)>", "", full_text)
             recipe_n_title = markdown.split("<TITLE_START>")
             title = "# " + recipe_n_title[1].replace("<TITLE_END>", "") + " #\n"
-            markdown = recipe_n_title[0].replace("<INPUT_START>", "## Input ingredients ##\n`").replace("<INPUT_END>",
-                                                                                                        "`\n")
-            markdown = markdown.replace("<NEXT_INPUT>", "`\n`").replace("<INGR_START>",
-                                                                        "## Ingredients ##\n* ").replace("<NEXT_INGR>",
-                                                                                                         "\n* ").replace(
-                "<INGR_END>", "\n")
+            markdown = recipe_n_title[0].replace("<INPUT_START>", "## Input ingredients ##\n`").replace("<INPUT_END>", "`\n")
+            markdown = markdown.replace("<NEXT_INPUT>", "`\n`").replace("<INGR_START>","## Ingredients ##\n* ").replace("<NEXT_INGR>","\n* ").replace("<INGR_END>", "\n")
             markdown = markdown.replace("<INSTR_START>", "## Instructions ##\n1) ")
 
             # Count each instruction
@@ -181,8 +181,8 @@ def generate_recipes_gpt2(params: DictConfig):
             markdown = markdown.replace("<INSTR_END>", "\n")
             markdown = re.sub("$ +#", "#", markdown)
             markdown = re.sub("( +`|` +)", "`", markdown)
-            print(title + markdown)
-            if params['gpt2']['prompt']:
+            print('\n' + title + markdown)
+            if params['main']['prompt']:
                 break
 
         results.append(title + markdown)

@@ -11,8 +11,8 @@ from tqdm import tqdm
 def dataset2text(params):
     local_path = os.path.normpath(get_original_cwd())
 
-    if local_path + '/data/unsupervised_train.txt' in os.listdir(local_path + '/data/'):
-        print('Dataset already in text format. Skipping conversion.')
+    if local_path + '/data/unsupervised_train_filtered.txt' in os.listdir(local_path + '/data/'):
+        print('Dataset already in txt format. Skipping conversion.')
         return
 
     dataset_path = local_path + "/data/full_dataset.csv"

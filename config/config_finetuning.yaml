@@ -1,171 +1,60 @@
 main:
-    model_type: llama  # "Model type selected in the list"
-    create_txt_files: False
-    create_h5_file: False
-    create_valid: False  # "Whether to create a validation set."
-    tokenizer: ""  # placeholder
-    model_name_or_path: ""  # placeholder
 
-gpt2:
-    create_valid: True  # "Whether to create a validation set."
+    # User-defined variables
+    model_type: llama  # "Model type selected in the list"
+    per_gpu_train_batch_size: 1  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
+    per_gpu_eval_batch_size: 1  # "Batch size per GPU/CPU for evaluation. (from paper, gpt-2 was 4)"
+    gradient_accumulation_steps: 1  # "Number of updates steps to accumulate before performing a backward/update pass."
+    do_lower_case: False  # "Set this flag if you are using an uncased model."
     do_train: True  # "Whether to run training."
     do_eval: True  # "Whether to run eval on the dev set."
+    create_valid: False  # "Whether to create a validation set."
+    config_name: ''  # "Optional pretrained config name or path if not the same as model_name_or_path"
 
+    # Training hyperparameters
+    learning_rate: 5e-5  # "The initial learning rate for Adam."
+    weight_decay: 0.0  # "Weight decay if we apply some."
+    adam_epsilon: 1e-8  # "Epsilon for Adam optimizer."
+    max_grad_norm: 1.0  # "Max gradient norm."
+    num_train_epochs: 1.0  # "Total number of training epochs to perform."
+    max_steps: -1  # "If > 0: set total number of training steps to perform. Override num_train_epochs."
+    warmup_steps: 0  # "Linear warmup over warmup_steps."
+
+    # Hardware and logging pre-defined variables
     train_data_file: data/unsupervised_train_filtered.txt  # "The input training data file (a text file)."
     eval_data_file: data/unsupervised_test_filtered.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
     output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
     output_dir_to_eval: models_to_evaluate/  # "The output directory where the model predictions checkpoints to eval are."
-
-    model_type: gpt2  # "Model type selected in the list"
-    tokenizer_name: gpt2  # "Optional pretrained tokenizer name or path if not the same as
-    model_name_or_path: gpt2 # "The model checkpoint for weights initialization."
     no_cuda: False  # "Avoid using CUDA when available"
     n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
-    config_name: ''  # "Optional pretrained config name or path if not the same as model_name_or_path"
     cache_dir: ''  # "Optional directory to store the pre-trained models downloaded from s3 (instead of the default one)"
     block_size: -1  # "Optional input sequence length after tokenization."
-    evaluate_during_training: True  # "Run evaluation during training at each save step."
-    do_lower_case: False  # "Set this flag if you are using an uncased model."
-    per_gpu_train_batch_size: 1  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
-    per_gpu_eval_batch_size: 1  # "Batch size per GPU/CPU for evaluation. (from paper, gpt-2 was 4)"
     train_batch_size: -1  # Overwritten in the code (depends on the nb of GPUs)
     eval_batch_size: -1  # Overwritten in the code (depends on the nb of GPUs)
-    gradient_accumulation_steps: 1  # "Number of updates steps to accumulate before performing a backward/update pass."
-    learning_rate: 5e-5  # "The initial learning rate for Adam."
-    weight_decay: 0.0  # "Weight decay if we apply some."
-    adam_epsilon: 1e-8  # "Epsilon for Adam optimizer."
-    max_grad_norm: 1.0  # "Max gradient norm."
-    num_train_epochs: 1.0  # "Total number of training epochs to perform."
-    max_steps: -1  # "If > 0: set total number of training steps to perform. Override num_train_epochs."
-    warmup_steps: 0  # "Linear warmup over warmup_steps."
-
     logging_steps: 1  # "Log every X updates steps."
     save_steps: 50000  # "Save checkpoint every X updates steps. (default=10000, which is way too much data)"
     eval_all_checkpoints: True  # "Evaluate all checkpoints starting with the same prefix as model_name_or_path ending and ending with step number"
     overwrite_output_dir: True  # "Overwrite the content of the output directory"
     overwrite_cache: False  # "Overwrite the cached training and evaluation sets"
     aws_bucket: ''  # "Whether to upload to specified bucket."
+
+    # Overwritten variables (depends on the model type)
+    tokenizer_name: gpt2  # "Optional pretrained tokenizer name or path if not the same as
+    model_name_or_path: gpt2 # "The model checkpoint for weights initialization."
+    evaluate_during_training: True  # "Run evaluation during training at each save step."
+
+gpt2:
+    tokenizer_name: gpt2
+    model_name_or_path: gpt2
 
 opt:
-    create_valid: False  # "Whether to create a validation set."
-    do_train: True  # "Whether to run training."
-    do_eval: True  # "Whether to run eval on the dev set."
-
-    train_data_file: data/unsupervised_train_filtered.txt  # "The input training data file (a text file)."
-    eval_data_file: data/unsupervised_test_filtered.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
-    output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
-    output_dir_to_eval: models_to_evaluate/  # "The output directory where the model predictions checkpoints to eval are."
-
-    model_type: opt  # "Model type selected in the list"
-    tokenizer_name: facebook/opt-125m  # "Optional pretrained tokenizer name or path if not the same as
-    model_name_or_path: facebook/opt-125m  # "The model checkpoint for weights initialization."
-    no_cuda: False  # "Avoid using CUDA when available"
-    n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
-    config_name: ''  # "Optional pretrained config name or path if not the same as model_name_or_path"
-    cache_dir: ''  # "Optional directory to store the pre-trained models downloaded from s3 (instread of the default one)"
-    block_size: -1  # "Optional input sequence length after tokenization."
-    evaluate_during_training: True  # "Run evaluation during training at each save step."
-    do_lower_case: False  # "Set this flag if you are using an uncased model."
-    per_gpu_train_batch_size: 2  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
-    per_gpu_eval_batch_size: 2  # "Batch size per GPU/CPU for evaluation. (from paper, gpt-2 was 4)"
-    train_batch_size: -1  # Overwritten in the code (depends on the nb of GPUs)
-    eval_batch_size: -1  # Overwritten in the code (depends on the nb of GPUs)
-    gradient_accumulation_steps: 1  # "Number of updates steps to accumulate before performing a backward/update pass."
-    learning_rate: 5e-5  # "The initial learning rate for Adam."
-    weight_decay: 0.0  # "Weight decay if we apply some."
-    adam_epsilon: 1e-8  # "Epsilon for Adam optimizer."
-    max_grad_norm: 1.0  # "Max gradient norm."
-    num_train_epochs: 1.0  # "Total number of training epochs to perform."
-    max_steps: -1  # "If > 0: set total number of training steps to perform. Override num_train_epochs."
-    warmup_steps: 0  # "Linear warmup over warmup_steps."
-
-    logging_steps: 1  # "Log every X updates steps."
-    save_steps: 50000  # "Save checkpoint every X updates steps. (default=10000, which is way too much data)"
-    eval_all_checkpoints: True  # "Evaluate all checkpoints starting with the same prefix as model_name_or_path ending and ending with step number"
-    overwrite_output_dir: True  # "Overwrite the content of the output directory"
-    overwrite_cache: False  # "Overwrite the cached training and evaluation sets"
-    aws_bucket: ''  # "Whether to upload to specified bucket."
+    tokenizer_name: facebook/opt-125m
+    model_name_or_path: facebook/opt-125m
 
 llama:
-    create_txt_files: False
-    create_h5_file: False
-    create_valid: False  # "Whether to create a validation set."
-    do_train: True  # "Whether to run training."
-    do_eval: True  # "Whether to run eval on the dev set."
-
-    train_data_file: data/unsupervised_train_filtered.txt  # "The input training data file (a text file)."
-    eval_data_file: data/unsupervised_test_filtered.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
-    output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
-    output_dir_to_eval: models_to_evaluate/  # "The output directory where the model predictions checkpoints to eval are."
-
-    model_type: llama  # "Model type selected in the list"
-    tokenizer_name: decapoda-research/llama-7b-hf  # "Optional pretrained tokenizer name or path if not the same as
-    model_name_or_path: decapoda-research/llama-7b-hf # "The model checkpoint for weights initialization."
-    no_cuda: False  # "Avoid using CUDA when available"
-    n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
-    config_name: ''  # "Optional pretrained config name or path if not the same as model_name_or_path"
-    cache_dir: ''  # "Optional directory to store the pre-trained models downloaded from s3 (instread of the default one)"
-    block_size: -1  # "Optional input sequence length after tokenization."
-    evaluate_during_training: True  # "Run evaluation during training at each save step."
-    do_lower_case: False  # "Set this flag if you are using an uncased model."
-    per_gpu_train_batch_size: 1  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
-    per_gpu_eval_batch_size: 1  # "Batch size per GPU/CPU for evaluation. (from paper, gpt-2 was 4)"
-    train_batch_size: -1  # Overwritten in the code (depends on the nb of GPUs)
-    eval_batch_size: -1  # Overwritten in the code (depends on the nb of GPUs)
-    gradient_accumulation_steps: 1  # "Number of updates steps to accumulate before performing a backward/update pass."
-    learning_rate: 5e-5  # "The initial learning rate for Adam."
-    weight_decay: 0.0  # "Weight decay if we apply some."
-    adam_epsilon: 1e-8  # "Epsilon for Adam optimizer."
-    max_grad_norm: 1.0  # "Max gradient norm."
-    num_train_epochs: 1.0  # "Total number of training epochs to perform."
-    max_steps: -1  # "If > 0: set total number of training steps to perform. Override num_train_epochs."
-    warmup_steps: 0  # "Linear warmup over warmup_steps."
-
-    logging_steps: 1  # "Log every X updates steps."
-    save_steps: 50000  # "Save checkpoint every X updates steps. (default=10000, which is way too much data)"
-    eval_all_checkpoints: True  # "Evaluate all checkpoints starting with the same prefix as model_name_or_path ending and ending with step number"
-    overwrite_output_dir: True  # "Overwrite the content of the output directory"
-    overwrite_cache: False  # "Overwrite the cached training and evaluation sets"
-    aws_bucket: ''  # "Whether to upload to specified bucket."
+    tokenizer_name: decapoda-research/llama-7b-hf
+    model_name_or_path: decapoda-research/llama-7b-hf
 
 lora:
-    create_txt_files: False
-    create_h5_file: False
-    create_valid: True  # "Whether to create a validation set."
-    do_train: True  # "Whether to run training."
-    do_eval: True  # "Whether to run eval on the dev set."
-
-    train_data_file: data/unsupervised_train_filtered.txt  # "The input training data file (a text file)."
-    eval_data_file: data/unsupervised_test_filtered.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
-    output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
-    output_dir_to_eval: models_to_evaluate/  # "The output directory where the model predictions checkpoints to eval are."
-
-    model_type: lora  # "Model type selected in the list"
-    tokenizer_name: decapoda-research/llama-7b-hf  # "Optional pretrained tokenizer name or path if not the same as
-    model_name_or_path: decapoda-research/llama-7b-hf # "The model checkpoint for weights initialization."
-    no_cuda: False  # "Avoid using CUDA when available"
-    n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
-    config_name: ''  # "Optional pretrained config name or path if not the same as model_name_or_path"
-    cache_dir: ''  # "Optional directory to store the pre-trained models downloaded from s3 (instread of the default one)"
-    block_size: -1  # "Optional input sequence length after tokenization."
-    evaluate_during_training: True  # "Run evaluation during training at each save step."
-    do_lower_case: False  # "Set this flag if you are using an uncased model."
-    per_gpu_train_batch_size: 1  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
-    per_gpu_eval_batch_size: 1  # "Batch size per GPU/CPU for evaluation. (from paper, gpt-2 was 4)"
-    train_batch_size: -1  # Overwritten in the code (depends on the nb of GPUs)
-    eval_batch_size: -1  # Overwritten in the code (depends on the nb of GPUs)
-    gradient_accumulation_steps: 1  # "Number of updates steps to accumulate before performing a backward/update pass."
-    learning_rate: 5e-5  # "The initial learning rate for Adam."
-    weight_decay: 0.0  # "Weight decay if we apply some."
-    adam_epsilon: 1e-8  # "Epsilon for Adam optimizer."
-    max_grad_norm: 1.0  # "Max gradient norm."
-    num_train_epochs: 1.0  # "Total number of training epochs to perform."
-    max_steps: -1  # "If > 0: set total number of training steps to perform. Override num_train_epochs."
-    warmup_steps: 0  # "Linear warmup over warmup_steps."
-
-    logging_steps: 1  # "Log every X updates steps."
-    save_steps: 50000  # "Save checkpoint every X updates steps. (default=10000, which is way too much data)"
-    eval_all_checkpoints: True  # "Evaluate all checkpoints starting with the same prefix as model_name_or_path ending and ending with step number"
-    overwrite_output_dir: True  # "Overwrite the content of the output directory"
-    overwrite_cache: False  # "Overwrite the cached training and evaluation sets"
-    aws_bucket: ''  # "Whether to upload to specified bucket."
+    tokenizer_name: decapoda-research/llama-7b-hf
+    model_name_or_path: decapoda-research/llama-7b-hf
