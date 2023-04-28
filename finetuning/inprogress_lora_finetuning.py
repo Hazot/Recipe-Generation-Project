@@ -40,31 +40,6 @@ from transformers import (WEIGHTS_NAME, get_linear_schedule_with_warmup, AutoMod
 
 logger = logging.getLogger(__name__)
 
-
-# class TextDataset(Dataset):
-#     def __init__(self, tokenizer, file_path='train', block_size=512):
-#         cached_features_file = get_original_cwd() + "/data/unsupervised_llama_2048.h5"
-#         print('Project Folder', get_original_cwd())
-#
-#         logger.info("Loading features from cached file %s", cached_features_file)
-#         with h5py.File(cached_features_file, 'r') as f:
-#             if file_path=='test':
-#                 self.examples = f[file_path][:] #this is a dev set, 10% of a test set
-#             else:
-#                 self.examples = f[file_path][:]
-#
-#     def __len__(self):
-#         return len(self.examples)
-#
-#     def __getitem__(self, item):
-#         return torch.tensor(self.examples[item])
-
-#
-# def load_and_cache_examples(params, tokenizer, evaluate=False):
-#     dataset = TextDataset(tokenizer, file_path="test" if evaluate else "train", block_size=params['opt']['block_size'])
-#     return dataset
-
-
 def trainer_lora(params: DictConfig):
     # model/data params
     data_path = hydra.utils.get_original_cwd() + "/data/llama_recipes.json"

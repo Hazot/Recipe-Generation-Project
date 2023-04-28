@@ -8,11 +8,13 @@ from hydra.utils import get_original_cwd
 from tqdm import tqdm
 
 
-def dataset2text(params):
+def dataset2text(params, logger):
     local_path = os.path.normpath(get_original_cwd())
 
-    if local_path + '/data/unsupervised_train_filtered.txt' in os.listdir(local_path + '/data/'):
-        print('Dataset already in txt format. Skipping conversion.')
+    if 'unsupervised_train_filtered.txt' in \
+            os.listdir(local_path + '/data/') and 'unsupervised_test_filtered.txt' \
+            in os.listdir(local_path + '/data/'):
+        logger.info('Dataset already in txt format. Skipping conversion.')
         return
 
     dataset_path = local_path + "/data/full_dataset.csv"
@@ -20,21 +22,21 @@ def dataset2text(params):
         raise Exception("Dataset not found. Please be sure to put full_dataset.csv in the 'data/' folder")
 
     df = pd.read_csv(dataset_path)
-    print('full_dataset df.shape:', df.shape)
+    logger.info('full_dataset df.shape:', df.shape)
 
     remove1 = df.loc[df.title.map(lambda x: len(x) < 4)]  # remove recipe with titles with less than 4 characters
     remove2 = df.loc[df.ingredients.map(lambda x: len(x) < 2)]  # remove recipe with less than 2 ingredients
     remove3 = df.loc[df.directions.map(lambda x: len(x) < 2 or len(''.join(x)) < 30)]  # remove recipe with less than 2 directions or less than 30 characters
     remove4 = df.loc[df.directions.map(lambda x: re.search('(step|mix all)', ''.join(str(x)), re.IGNORECASE)!=None)]  # remove recipe with directions that contain 'step' or 'mix all'
 
-    print('len of removed lines:', len(remove3)+len(remove2)+len(remove1)+len(remove4))
+    logger.info('len of removed lines:', len(remove3)+len(remove2)+len(remove1)+len(remove4))
 
     df.drop(df[df.title.map(lambda x: len(x)<4)].index, inplace=True)
     df.drop(df[df.ingredients.map(lambda x: len(x)<2)].index, inplace=True)
     df.drop(df[df.directions.map(lambda x: len(x) < 2 or len(''.join(x)) < 30)].index, inplace=True)
     df.drop(df[df.directions.map(lambda x: re.search('(step|mix all)', ''.join(str(x)), re.IGNORECASE)!=None)].index, inplace=True)
 
-    print('dataset df.shape:', df.shape)
+    logger.info('dataset df.shape:', df.shape)
 
     df.reset_index(drop=True, inplace=True)
 
@@ -43,26 +45,26 @@ def dataset2text(params):
     if params['main']['create_valid']:
         train, valid = train_test_split(train, test_size=0.05)  # Use 5% for test set
         # train: (1896219, 7), valid: (99802, 7)
-        print('train.shape', train.shape)
-        print('valid.shape', valid.shape)
-        print('test.shape', test.shape)
+        logger.info('train.shape', train.shape)
+        logger.info('valid.shape', valid.shape)
+        logger.info('test.shape', test.shape)
         train.reset_index(drop=True, inplace=True)
         valid.reset_index(drop=True, inplace=True)
         test.reset_index(drop=True, inplace=True)
     else:
-        print('train.shape', train.shape)
-        print('test.shape', test.shape)
+        logger.info('train.shape', train.shape)
+        logger.info('test.shape', test.shape)
         train.reset_index(drop=True, inplace=True)
         test.reset_index(drop=True, inplace=True)
         valid = None
 
     def df_to_plaintext_file(input_df, output_file):
         pattern = r"<RECIPE_START>"
-        print("Writing to", output_file)
+        logger.info("Writing to", output_file)
         with open(output_file, 'w') as f:
             for index, row in tqdm(input_df.iterrows()):
                 if index % 100000 == 0:
-                    print("| " + str(index))
+                    logger.info("| " + str(index))
                 if type(row.NER) != str:
                     continue
                 title = row.title
@@ -77,10 +79,10 @@ def dataset2text(params):
                     f.write("{}\n".format(res))
                 else:
                     continue
-            print('last index:', index)
+            logger.info('last index:', index)
 
     def filter_txt(input_path, output_path):
-        print("Filtering", input_path, "to", output_path)
+        logger.info("Filtering", input_path, "to", output_path)
         count = 0
         bad_lines = pd.DataFrame()
         pattern1 = r"<RECIPE_START>"

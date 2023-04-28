@@ -16,12 +16,9 @@
 # limitations under the License.
 """ Conditional text generation with GPT-2
 """
-
-import argparse
-import logging
 import json
+import logging
 from tqdm import trange
-
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -29,21 +26,9 @@ import re
 import hydra
 from omegaconf import DictConfig
 
-from transformers import GPT2Config
-
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, AutoModelForCausalLM, AutoTokenizer
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                    datefmt='%m/%d/%Y %H:%M:%S',
-                    level=logging.INFO)
-
-MAX_LENGTH = int(10000)  # Hardcoded max length to avoid infinite loop
-
-MODEL_CLASSES = {
-    'gpt2': (GPT2LMHeadModel, GPT2Tokenizer),
-    'opt': (AutoModelForCausalLM, AutoTokenizer),
-    'llama': (LlamaForCausalLM, LlamaTokenizer)
-}
+from utils.model_utils import create_tokenizer, create_model
 
 
 def set_seed(params):
@@ -113,20 +98,20 @@ def sample_sequence(
     return generated
 
 
-def generate_recipes(params: DictConfig):
+def generate_recipes(params: DictConfig, logger: logging.Logger):
+
     # Initializations
     device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")
-    params['main']['n_gpu'] = torch.cuda.device_count()
+    params['main']['n_gpu'] = torch.cuda.device_count() if params['main']['n_gpu'] == -1 else params['main']['n_gpu']
+
+    logger.info("device: {} | n_gpu: {}".format(device, params['main']['n_gpu']))
 
     set_seed(params=params)
 
     # Update checkpoint path for current local directory
     params['main']['model_name_or_path'] = hydra.utils.get_original_cwd() + params['main']['model_name_or_path']
-
-    params['main']['model_type'] = params['main']['model_type'].lower()
-    model_class, tokenizer_class = MODEL_CLASSES[params['main']['model_type']]
-    tokenizer = tokenizer_class.from_pretrained(params['main']['model_name_or_path'], use_fast=False, do_lower_case=False, truncation_side='left')
-    model = model_class.from_pretrained(params['main']['model_name_or_path'])
+    tokenizer, max_token_len = create_tokenizer(params=params, model_name_or_path=params['main']['model_name_or_path'])
+    model = create_model(params=params)
     model.to(device)
     model.eval()
 
@@ -135,7 +120,7 @@ def generate_recipes(params: DictConfig):
     elif 0 < model.config.max_position_embeddings < params['main']['length']:
         params['main']['length'] = model.config.max_position_embeddings  # No generation bigger than model size
     elif params['main']['length'] < 0:
-        params['main']['length'] = MAX_LENGTH  # avoid infinite loop
+        params['main']['length'] = int(10000)  # Hardcoded max length to avoid infinite loop
 
     results = []
 

@@ -1,15 +1,15 @@
 main:
 
     # User-defined variables
-    model_type: llama  # "Model type selected in the list"
-    per_gpu_train_batch_size: 1  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
-    per_gpu_eval_batch_size: 1  # "Batch size per GPU/CPU for evaluation. (from paper, gpt-2 was 4)"
+    model_type: gpt2  # "Model type selected in the list"
+    per_gpu_train_batch_size: 2  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
+    per_gpu_eval_batch_size: 2  # "Batch size per GPU/CPU for evaluation. (from paper, gpt-2 was 4)"
     gradient_accumulation_steps: 1  # "Number of updates steps to accumulate before performing a backward/update pass."
-    do_lower_case: False  # "Set this flag if you are using an uncased model."
     do_train: True  # "Whether to run training."
     do_eval: True  # "Whether to run eval on the dev set."
     create_valid: False  # "Whether to create a validation set."
     config_name: ''  # "Optional pretrained config name or path if not the same as model_name_or_path"
+    num_workers: 0  # "Number of workers to use for the data loader."
 
     # Training hyperparameters
     learning_rate: 5e-5  # "The initial learning rate for Adam."
@@ -42,19 +42,33 @@ main:
     tokenizer_name: gpt2  # "Optional pretrained tokenizer name or path if not the same as
     model_name_or_path: gpt2 # "The model checkpoint for weights initialization."
     evaluate_during_training: True  # "Run evaluation during training at each save step."
+    do_lower_case: False # "Set this flag if you are using an uncased model."
+    truncation_side: 'right' # "Truncation side selection (left or right)."
 
+# Default parameters for GPT2
 gpt2:
-    tokenizer_name: gpt2
-    model_name_or_path: gpt2
+    tokenizer_name: 'gpt2'
+    model_name_or_path: 'gpt2'
+    do_lower_case: False
+    truncation_side: 'right'
 
+# Default parameters for OPT
 opt:
-    tokenizer_name: facebook/opt-125m
-    model_name_or_path: facebook/opt-125m
+    tokenizer_name: 'facebook/opt-125m'
+    model_name_or_path: 'facebook/opt-125m'
+    do_lower_case: False
+    truncation_side: 'right'
 
+# Default parameters for Llama
 llama:
-    tokenizer_name: decapoda-research/llama-7b-hf
-    model_name_or_path: decapoda-research/llama-7b-hf
+    tokenizer_name: 'decapoda-research/llama-7b-hf'
+    model_name_or_path: 'decapoda-research/llama-7b-hf'
+    do_lower_case: False
+    truncation_side: 'right'
 
+# Default parameters for Llama-lora
 lora:
-    tokenizer_name: decapoda-research/llama-7b-hf
-    model_name_or_path: decapoda-research/llama-7b-hf
+    tokenizer_name: 'decapoda-research/llama-7b-hf'
+    model_name_or_path: 'decapoda-research/llama-7b-hf'
+    do_lower_case: False
+    truncation_side: 'right'

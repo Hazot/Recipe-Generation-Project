@@ -1,57 +1,27 @@
 """
-Fine-tuning the library models for language modeling on a text file (GPT-2,).
-GPT-2 is fine-tuned using a causal language modeling (CLM) loss
+Fine-tuning the library models for language modeling on a HDF5 dataset (see create_dataset.py) for GPT2, OPT, and LLAMA.
 """
 
 import glob
 import logging
 import os
-import random
-import gc
 import h5py
 import boto3
 import shutil
-from hydra.utils import get_original_cwd
-from omegaconf import DictConfig
 import tarfile
 import time
-
-
-import numpy as np
 import torch
+
+from hydra.utils import get_original_cwd
+from omegaconf import DictConfig
+from peft import prepare_model_for_int8_training, get_peft_model, LoraConfig
 from torch.utils.data import DataLoader, Dataset, SequentialSampler, RandomSampler
-from torch.utils.data.distributed import DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim import AdamW
 from tqdm import tqdm, trange
+from transformers import WEIGHTS_NAME, get_linear_schedule_with_warmup
 
-from transformers import (WEIGHTS_NAME, get_linear_schedule_with_warmup, GPT2Config, GPT2LMHeadModel, GPT2Tokenizer)
-
-logger = logging.getLogger(__name__)
-
-MODEL_CLASSES = {
-    'gpt2': (GPT2LMHeadModel, GPT2Tokenizer),
-    'opt': (AutoModelForCausalLM, AutoTokenizer),
-    'llama': (LlamaForCausalLM, LlamaTokenizer)
-}
-
-
-def initialize_models(params):
-    model_class, tokenizer_class = MODEL_CLASSES[params['main']['model_type']]
-
-    if params['main']['model_type'] is 'opt':
-        use_fast = False
-    else:
-        use_fast = True
-
-    tokenizer_class.from_pretrained(params['main']['tokenizer_name'],
-                                    do_lower_case=params['main']['do_lower_case'],
-                                    use_fast=use_fast,
-                                    truncation_side=params['main']['truncation_side']
-                                    )
-    model = model_class.from_pretrained(params['main']['model_name_or_path'])
-    model.to(params['main']['device'])
-    return model, tokenizer
+from utils.model_utils import create_model, create_tokenizer
 
 def tardir(path, tar_name):
     with tarfile.open(tar_name, "w") as tar_handle:
@@ -61,14 +31,14 @@ def tardir(path, tar_name):
 
 
 class TextDataset(Dataset):
-    def __init__(self, tokenizer, file_path='train', block_size=512):
-        cached_features_file = get_original_cwd() + "/data/unsupervised.h5"
+    def __init__(self, model_type, file_path='train'):
+        cached_features_file = get_original_cwd() + f"/data/unsupervised_{model_type}.h5"
         print('Project Folder', get_original_cwd())
 
-        logger.info("Loading features from cached file %s", cached_features_file)
+        print("Loading features from cached file %s", cached_features_file)
         with h5py.File(cached_features_file, 'r') as f:
-            if file_path=='test':
-                self.examples = f[file_path][:] #this is a dev set, 10% of a test set
+            if file_path == 'test':
+                self.examples = f[file_path][:]  # this is a dev set, 10% of a test set
             else:
                 self.examples = f[file_path][:]
 
@@ -79,17 +49,21 @@ class TextDataset(Dataset):
         return torch.tensor(self.examples[item])
 
 
-def load_and_cache_examples(params, tokenizer, evaluate=False):
-    dataset = TextDataset(tokenizer, file_path="test" if evaluate else "train", block_size=params['main']['block_size'])
+def load_and_cache_examples(params, evaluate=False):
+    file_path = "test" if evaluate else "train"
+    dataset = TextDataset(params['main']['model_type'], file_path=file_path)
     return dataset
 
 
-def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
+def train(params, train_dataset, model, tokenizer, device, tb_writer=None, logger=None):
     """ Train the model """
 
     params['main']['train_batch_size'] = params['main']['per_gpu_train_batch_size'] * max(1, params['main']['n_gpu'])
     train_sampler = RandomSampler(train_dataset)
-    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=params['main']['train_batch_size'])
+    train_dataloader = DataLoader(train_dataset,
+                                  sampler=train_sampler,
+                                  batch_size=params['main']['train_batch_size'],
+                                  num_workers=params['main']['num_workers'])
 
     if params['main']['max_steps'] > 0:
         t_total = params['main']['max_steps']
@@ -107,12 +81,12 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
         {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
          'weight_decay': 0.0}
         ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=params['main']['learning_rate'], eps=params['main']['adam_epsilon'])
+    optimizer = AdamW(optimizer_grouped_parameters,
+                      lr=params['main']['learning_rate'],
+                      eps=params['main']['adam_epsilon'])
     scheduler = get_linear_schedule_with_warmup(optimizer,
                                                 num_warmup_steps=params['main']['warmup_steps'],
                                                 num_training_steps=t_total)
-    optimizer.to(device)
-    scheduler.to(device)
 
     # Train!
     logger.info("***** Running training *****")
@@ -135,9 +109,6 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=False, position=0, leave=True)
         for step, batch in enumerate(epoch_iterator):
-            if step % params['main']['logging_steps'] == 0:
-                # logger.info(f'Step: {step} | Time: {round(time.time() - start, 3)} s')
-                lol = round(time.time() - start)
             inputs, labels = (batch, batch)
             inputs = inputs.to(device)
             labels = labels.to(device)
@@ -148,9 +119,6 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
 
             if params['main']['gradient_accumulation_steps'] > 1:
                 loss = loss / params['main']['gradient_accumulation_steps']
-
-            # with amp.scale_loss(loss, optimizer) as scaled_loss:
-            #     scaled_loss.backward()
 
             loss.backward()
 
@@ -165,8 +133,7 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
 
                 if params['main']['logging_steps'] > 0 and global_step % params['main']['logging_steps'] == 0:
                     # Log metrics
-                    # tb_writer.add_scalar('lr', scheduler.get_lr()[0], global_step)
-                    tb_writer.add_scalar('Scheduler Learning Rate', scheduler.get_last_lr()[0], global_step)
+                    tb_writer.add_scalar('Learning Rate', scheduler.get_last_lr()[0], global_step)
                     tb_writer.add_scalar('Loss', (tr_loss - logging_loss) / params['main']['logging_steps'], global_step)
                     tb_writer.add_scalar('Time', (time.time() - start) / params['main']['logging_steps'], global_step)
                     logging_loss = tr_loss
@@ -188,8 +155,10 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
                     torch.save(params, os.path.join(output_dir, 'training_params.bin'))
                     tokenizer.save_pretrained(output_dir)
                     logger.info("Saving model checkpoint to %s", output_dir)
-                    if params['main']['evaluate_during_training']:  # Only evaluate when single GPU otherwise metrics may not average well
-                        results = evaluate(params, model, tokenizer, device, prefix=global_step, tb_writer=tb_writer)
+                    if params['main']['evaluate_during_training']:
+                        # Only evaluate when single GPU otherwise metrics may not average well
+                        results = evaluate(params, model, tokenizer, device,
+                                           prefix=global_step, tb_writer=tb_writer, logger=logger)
                         for key, value in results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
                     if params['main']['aws_bucket']:
@@ -212,11 +181,11 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None):
     return global_step, tr_loss / global_step
 
 
-def evaluate(params, model, tokenizer, device, prefix, tb_writer=None):
+def evaluate(params, model, tokenizer, device, prefix, tb_writer=None, logger=None):
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_output_dir = params['main']['output_dir']
 
-    eval_dataset = load_and_cache_examples(params, tokenizer, evaluate=True)
+    eval_dataset = load_and_cache_examples(params, evaluate=True)
 
     if not os.path.exists(eval_output_dir):
         os.makedirs(eval_output_dir)
@@ -268,7 +237,7 @@ def evaluate(params, model, tokenizer, device, prefix, tb_writer=None):
     return result
 
 
-def trainer_finetuning(params: DictConfig):
+def trainer_finetuning(params: DictConfig, logger: logging.Logger):
     # Check for configuration problems
     if params['main']['eval_data_file'] is None and params['main']['do_eval']:
         raise ValueError("Cannot do evaluation without an evaluation data file. Either supply a file to "
@@ -276,67 +245,58 @@ def trainer_finetuning(params: DictConfig):
 
     output_dir = params['main']['output_dir']
 
-
     # Initializations
     device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")
-    params['main']['n_gpu'] = torch.cuda.device_count()
+    params['main']['n_gpu'] = torch.cuda.device_count() if params['main']['n_gpu'] == -1 else params['main']['n_gpu']
 
-    model_class = GPT2LMHeadModel
-    tokenizer_class = GPT2Tokenizer
-    if params['main']['tokenizer_name']:
-        tokenizer = tokenizer_class.from_pretrained(params['main']['tokenizer_name'],
-                                                    do_lower_case=params['main']['do_lower_case'])
-    else:
-        tokenizer = tokenizer_class.from_pretrained(params['main']['model_name_or_path'],
-                                                    do_lower_case=params['main']['do_lower_case'])
+    logger.info("device: {} n_gpu: {}".format(device, params['main']['n_gpu']))
 
-    model = model_class.from_pretrained(params['main']['model_name_or_path'])
-    special_tokens = {
-        "additional_special_tokens": [
-            "<TITLE_START>",
-            "<TITLE_END>",
-            "<INSTR_START>",
-            "<NEXT_INSTR>",
-            "<INSTR_END>",
-            "<INGR_START>",
-            "<NEXT_INGR>",
-            "<INGR_END>",
-            "<RECIPE_START>",
-            "<RECIPE_END>",
-            "<INPUT_START>",
-            "<INPUT_END>",
-            "<NEXT_INPUT>"
-        ]
-    }
-
-    tokenizer.add_special_tokens(special_tokens)
+    tokenizer, max_token_len = create_tokenizer(params, params['main']['tokenizer_name'])
+    model = create_model(params, params['main']['model_name_or_path'])
     model.resize_token_embeddings(len(tokenizer))
+    if params['main']['model_type'] == 'gpt2' or params['main']['model_type'] == 'opt':
+        model.to(device)
+        ''' model.hf_device_map == code to check the mapping of the model to the hardware '''
+
+    if params['main']['model_type'] == 'lora':
+        model = prepare_model_for_int8_training(model)
+        # lora hyperparams
+        lora_r = 8
+        lora_alpha = 16
+        lora_dropout = 0.05
+        lora_target_modules = ["q_proj", "v_proj"]
+        # lora_target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
+        config = LoraConfig(
+            r=lora_r,
+            lora_alpha=lora_alpha,
+            target_modules=lora_target_modules,
+            lora_dropout=lora_dropout,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        model = get_peft_model(model, config)
+
+        model.print_trainable_parameters()
 
     if params['main']['block_size'] <= 0:
-        params['main']['block_size'] = tokenizer.max_len_single_sentence  # Our input block size will be the max possible
-    params['main']['block_size'] = min(params['main']['block_size'], tokenizer.max_len_single_sentence)
-    model.to(device)
+        params['main']['block_size'] = max_token_len  # Our input block size is the max possible
+    params['main']['block_size'] = min(params['main']['block_size'], max_token_len)
 
-    # Setup logging
-    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                        datefmt='%m/%d/%Y %H:%M:%S',
-                        level=logging.INFO)
-
-    logger.info("Training/evaluation parameters %s", params)
+    # Training
 
     # Setup Tensorboard
     tb_writer = SummaryWriter(log_dir='tensorboard_logs/tensorboard_event_file')
 
     # Training
     if params['main']['do_train']:
-        train_dataset = load_and_cache_examples(params, tokenizer, evaluate=False)
+        train_dataset = load_and_cache_examples(params, evaluate=False)
 
-        print(len(train_dataset.examples))
-        global_step, tr_loss = train(params, train_dataset, model, tokenizer, device, tb_writer)
+        logger.info('len(train_dataset.examples) =', str(len(train_dataset.examples)))
+        global_step, tr_loss = train(params, train_dataset, model, tokenizer, device, tb_writer, logger)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
-    # Saving best-practices: if you use save_pretrained for the model and tokenizer, you can reload them using from_pretrained()
-    if params['main']['do_train']:
+        # Saving best-practices: if you use save_pretrained for the model and tokenizer,
+        # you can reload them using from_pretrained().
         # Create output directory if needed
         output_dir = os.path.join(params['main']['output_dir'], 'checkpoint-{}'.format(global_step))
         if not os.path.exists(output_dir):
@@ -354,9 +314,11 @@ def trainer_finetuning(params: DictConfig):
         torch.save(params, os.path.join(output_dir, 'training_params.bin'))
 
         # Load a trained model and vocabulary that you have fine-tuned
-        model = model_class.from_pretrained(output_dir)
-        tokenizer = tokenizer_class.from_pretrained(output_dir, do_lower_case=params['main']['do_lower_case'])
-        model.to(device)
+        tokenizer, max_token_len = create_tokenizer(params, output_dir)
+        model = create_model(params, output_dir)
+        if params['main']['model_type'] == 'gpt2' or params['main']['model_type'] == 'opt':
+            model.to(device)
+            ''' model.hf_device_map == code to check the mapping of the model to the hardware '''
 
     # Evaluation
     # if params['main''']['do_train']:
@@ -370,9 +332,11 @@ def trainer_finetuning(params: DictConfig):
         logger.info("Evaluate the following checkpoints: %s", checkpoints)
         for checkpoint in checkpoints:
             global_step = checkpoint.split('-')[-1]
-            model = model_class.from_pretrained(checkpoint)
-            model.to(device)
-            result = evaluate(params, model, tokenizer, device, prefix=global_step, tb_writer=tb_writer)
+            model = create_model(params, checkpoint)
+            if params['main']['model_type'] == 'gpt2' or params['main']['model_type'] == 'opt':
+                model.to(device)
+                ''' model.hf_device_map == code to check the mapping of the model to the hardware '''
+            result = evaluate(params, model, tokenizer, device, prefix=global_step, tb_writer=tb_writer, logger=logger)
             result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
             results.update(result)
     # elif params['main''']['output_dir_to_eval']:

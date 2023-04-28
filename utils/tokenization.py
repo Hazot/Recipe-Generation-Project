@@ -1,76 +1,39 @@
 import h5py
 from hydra.utils import get_original_cwd
+from omegaconf import DictConfig
 from tqdm import tqdm
 import numpy as np
 import os
 
-from transformers import GPT2Tokenizer, LlamaTokenizer, AutoTokenizer
+from utils.model_utils import create_tokenizer
 
 
-def tokenize(params):
+def tokenize(params: DictConfig, logger):
 
+    # Get the local path
     local_path = os.path.normpath(get_original_cwd())
+
+    # Get the path to the dataset in HDF5 format
     dataset_h5_path = local_path + f"/data/unsupervised_{params['main']['model_type']}.h5"
 
-    if dataset_h5_path in os.listdir(local_path + '/data/'):
-        print('Dataset already in HDF5 format. Skipping conversion.')
+    # Check if the dataset is already in HDF5 format
+    if os.path.exists(dataset_h5_path):
+        logger.info('Dataset already in HDF5 format. Skipping conversion.')
         return
 
-    if local_path + '/data/unsupervised_train_filtered.txt' not in os.listdir(local_path + '/data/'):
+    # Check if the dataset is in txt format
+    if 'unsupervised_train_filtered.txt' not in os.listdir(local_path + '/data/'):
         raise Exception("unsupervised_train_filtered.txt not found. Please put this file in the '/data/' folder")
-
-    if local_path + '/data/unsupervised_test_filtered.txt' not in os.listdir(local_path + '/data/'):
+    if 'unsupervised_test_filtered.txt' not in os.listdir(local_path + '/data/'):
         raise Exception("unsupervised_test_filtered.txt not found. Please put this file in the '/data/' folder")
 
-    if params['main']['model_type'] == 'gpt2':
-        tokenizer = GPT2Tokenizer.from_pretrained(
-            params['main']['tokenizer_name'],
-            do_lower_case=params['main']['do_lower_case'],
-            truncation_side=params['main']['truncation_side']
-        )
-        max_token_len = tokenizer.max_model_input_sizes["gpt2"]
-    elif params['main']['model_type'] == 'opt':
-        tokenizer = AutoTokenizer.from_pretrained(
-            params['main']['tokenizer_name'],
-            use_fast=False,
-            do_lower_case=params['main']['do_lower_case'],
-            truncation_side=params['main']['truncation_side']
-        )
-        max_token_len = tokenizer.max_model_input_sizes["gpt2"]
-    elif params['main']['model_type'] == 'llama' or params['main']['model_type'] == 'lora':
-        tokenizer = LlamaTokenizer.from_pretrained(
-            params['main']['tokenizer_name'],
-            do_lower_case=params['main']['do_lower_case'],
-            truncation_side=params['main']['truncation_side']
-        )
-        max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
-        tokenizer.pad_token_id = (
-            0  # unk. we want this to be different from the eos token
-        )
-    else:
-        raise Exception("Unknown model type")
+    # Create the tokenizer and get the max token length
+    tokenizer, max_token_len = create_tokenizer(params=params, model_name_or_path=params['main']['model_type'])
 
-    # Add special tokens to the tokenizer
-    special_tokens = {
-        "additional_special_tokens": [
-            "<TITLE_START>",
-            "<TITLE_END>",
-            "<INSTR_START>",
-            "<NEXT_INSTR>",
-            "<INSTR_END>",
-            "<INGR_START>",
-            "<NEXT_INGR>",
-            "<INGR_END>",
-            "<RECIPE_START>",
-            "<RECIPE_END>",
-            "<INPUT_START>",
-            "<INPUT_END>",
-            "<NEXT_INPUT>"
-        ]
-    }
-    tokenizer.add_special_tokens(special_tokens)
+    # Get the end token id
     end_token_id = tokenizer.convert_tokens_to_ids(["< RECIPE_END>"])[0]
 
+    # Create the HDF5 file
     hf = h5py.File(dataset_h5_path, "w")
 
     # Create a validation key if specified
@@ -84,14 +47,14 @@ def tokenize(params):
         out_np = []
         path = local_path + "/data/unsupervised_" + filename + "_filtered.txt"
         data = open(path, "r")
-        print("Reading file:" + path)
+        logger.info("Reading file:" + path)
         num = 0
         rows = 0
         last = []
         for line in tqdm(data):
             num += 1
             if num % 10000 == 0:
-                print("| Read " + str(num) + " Written: " + str(rows))
+                logger.info("| Read " + str(num) + " Written: " + str(rows))
 
             text_tokens = tokenizer.tokenize(line)
             if len(text_tokens) > max_token_len:  # Recipe won't fit the model
@@ -108,6 +71,7 @@ def tokenize(params):
                 last = text_tokens_ids
                 rows += 1
         out_mat = np.matrix(out_np)
-        print(out_mat.shape)
+        logger.info(out_mat.shape)
         hf.create_dataset(filename, data=out_mat)
     hf.close()
+    logger.info("H5 file successfully created")
