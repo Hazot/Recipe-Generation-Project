@@ -24,7 +24,9 @@ Afterwards, run:
 conda env create -f environment.yml
 ```
 
-## Generate recipe
+## Generate recipes
+
+The normal config will create recipes from the GPT2 model
 
 ```
 python run_generation.py

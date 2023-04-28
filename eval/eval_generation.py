@@ -34,10 +34,9 @@ from transformers import GPT2Config
 
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-
-logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                    datefmt = '%m/%d/%Y %H:%M:%S',
-                    level = logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+                    datefmt='%m/%d/%Y %H:%M:%S',
+                    level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 MAX_LENGTH = int(10000)  # Hardcoded max length to avoid infinite loop
@@ -46,11 +45,13 @@ MODEL_CLASSES = {
     'gpt2': (GPT2LMHeadModel, GPT2Tokenizer),
 }
 
+
 def set_seed(params):
     np.random.seed(params['log']['seed'])
     torch.manual_seed(params['log']['seed'])
     if params['alg']['n_gpu'] > 0:
         torch.cuda.manual_seed_all(params['log']['seed'])
+
 
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):
     """ Filter a distribution of logits using top-k and/or nucleus (top-p) filtering
@@ -82,6 +83,7 @@ def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')
         logits[indices_to_remove] = filter_value
     return logits
 
+
 def sample_sequence(model, length, context, tokenizer, num_samples=1, temperature=1, top_k=0, top_p=0.0, device='cpu'):
     end_token = tokenizer.convert_tokens_to_ids(["<RECIPE_END>"])[0]
     context = torch.tensor(context, dtype=torch.long, device=device)
@@ -90,7 +92,8 @@ def sample_sequence(model, length, context, tokenizer, num_samples=1, temperatur
     with torch.no_grad():
         for _ in trange(length):
             inputs = {'input_ids': generated}
-            outputs = model(**inputs)  # Note: we could also use 'past' with GPT-2/Transfo-XL/XLNet (cached hidden-states)
+            outputs = model(
+                **inputs)  # Note: we could also use 'past' with GPT-2/Transfo-XL/XLNet (cached hidden-states)
             next_token_logits = outputs[0][0, -1, :] / temperature
             filtered_logits = top_k_top_p_filtering(next_token_logits, top_k=top_k, top_p=top_p)
             next_token = torch.multinomial(F.softmax(filtered_logits, dim=-1), num_samples=1)
@@ -98,6 +101,7 @@ def sample_sequence(model, length, context, tokenizer, num_samples=1, temperatur
             if next_token.item() == end_token:
                 break
     return generated
+
 
 def generate_recipe(ingredients):
     params = {
@@ -170,7 +174,8 @@ def generate_recipe(ingredients):
 
         while True:
             raw_text = prompt if prompt else input("Comma-separated ingredients, semicolon to close the list >>> ")
-            prepared_input = '<RECIPE_START> <INPUT_START> ' + raw_text.replace(',', ' <NEXT_INPUT> ').replace(';', ' <INPUT_END>')
+            prepared_input = '<RECIPE_START> <INPUT_START> ' + raw_text.replace(',', ' <NEXT_INPUT> ').replace(';',
+                                                                                                               ' <INPUT_END>')
             context_tokens = tokenizer.encode(prepared_input)
             out = sample_sequence(
                 model=model,
@@ -186,7 +191,6 @@ def generate_recipe(ingredients):
             out = out[0, len(context_tokens):].tolist()
             text = tokenizer.decode(out, clean_up_tokenization_spaces=True)
 
-
             full_text = prepared_input + text
 
             if "<RECIPE_END>" not in full_text or "":
@@ -198,8 +202,6 @@ def generate_recipe(ingredients):
                 print(full_text)
                 print("Failed to generate, No <RECIPE_START>")
                 continue
-
-
 
             if "<INPUT_START>" not in full_text or "":
                 print(full_text)
@@ -234,7 +236,7 @@ def generate_recipe(ingredients):
             '''
             markdown = re.sub("<RECIPE_(START|END)>", "", full_text)
 
-   
+
             recipe_n_title = markdown.split("<TITLE_START>")
             title = "# " + recipe_n_title[1].replace("<TITLE_END>", "") + " #\n"
             markdown = recipe_n_title[0].replace("<INPUT_START>", "## Input ingredients ##\n`").replace("<INPUT_END>", "`\n")
@@ -255,12 +257,11 @@ def generate_recipe(ingredients):
             if prompt:
                 break
 
-        
         results.append(full_text + '\n')
-    
+
     with open('results.json', 'w') as f:
         json.dump(results, f, indent=4)
-    
+
     return results
 
 

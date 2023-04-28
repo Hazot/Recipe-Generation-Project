@@ -277,7 +277,10 @@ pyrightconfig.json
 # Start of user-based settings
 data/
 outputs/*
-models/*
+gpt2/
+opt/
+lora/
+llama/
 eval/ingredient_list.txt
 eval/ingredient_list.txt
 eval/results.json
