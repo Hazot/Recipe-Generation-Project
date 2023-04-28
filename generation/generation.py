@@ -70,6 +70,7 @@ def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')
 
 
 def sample_sequence(
+        recipe_num,
         model,
         length,
         context,
@@ -85,7 +86,7 @@ def sample_sequence(
     context = context.unsqueeze(0).repeat(num_samples, 1)
     generated = context
     with torch.no_grad():
-        for _ in trange(length):
+        for _ in trange(length, desc=f"Generating Recipe #{recipe_num + 1}"):
             inputs = {'input_ids': generated}
             outputs = model(
                 **inputs)  # Note: we could also use 'past' with GPT-2/Transfo-XL/XLNet (cached hidden-states)
@@ -109,7 +110,6 @@ def generate_recipes(params: DictConfig, logger: logging.Logger):
     set_seed(params=params)
 
     # Update checkpoint path for current local directory
-    params['main']['model_name_or_path'] = hydra.utils.get_original_cwd() + params['main']['model_name_or_path']
     tokenizer, max_token_len = create_tokenizer(params=params, model_name_or_path=params['main']['model_name_or_path'])
     model = create_model(params=params, model_name_or_path=params['main']['model_name_or_path'])
     model.to(device)
@@ -126,14 +126,17 @@ def generate_recipes(params: DictConfig, logger: logging.Logger):
 
     print("=====================================================================================================")
     print("Generating recipes...")
-    for _ in range(params['main']['num_promps']):
+    for recipe_num in range(params['main']['num_promps']):
 
         while True:
-            raw_text = params['main']['prompt'] if params['main']['prompt'] else input(
-                "Comma-separated ingredients, semicolon to close the list >>> ")
+            if params['main']['prompt']:
+                raw_text = params['main']['prompt']
+            else:
+                raise "No input text provided. Check your config file: params['main']['prompt']"
             prepared_input = '<RECIPE_START> <INPUT_START> ' + raw_text.replace(',', ' <NEXT_INPUT> ').replace(';', ' <INPUT_END>')
             context_tokens = tokenizer.encode(prepared_input)
             out = sample_sequence(
+                recipe_num=recipe_num,
                 model=model,
                 context=context_tokens,
                 tokenizer=tokenizer,
@@ -144,14 +147,21 @@ def generate_recipes(params: DictConfig, logger: logging.Logger):
                 top_p=params['main']['top_p'],
                 device=device
             )
+
             out = out[0, len(context_tokens):].tolist()
             text = tokenizer.decode(out, clean_up_tokenization_spaces=True)
-            if "<RECIPE_END>" not in text:
+
+            if "<RECIPE_END>" not in text and "<TITLE_END>" not in text:
                 print(text)
                 print("Failed to generate, recipe's too long")
                 continue
-            full_text = prepared_input + text
-            markdown = re.sub("<RECIPE_(START|END)>", "", full_text)
+
+            full_raw_recipe = prepared_input + text
+            if params['main']['evaluate']:
+                if params['main']['prompt']:
+                    break
+
+            markdown = re.sub("<RECIPE_(START|END)>", "", full_raw_recipe)
             recipe_n_title = markdown.split("<TITLE_START>")
             title = "# " + recipe_n_title[1].replace("<TITLE_END>", "") + " #\n"
             markdown = recipe_n_title[0].replace("<INPUT_START>", "## Input ingredients ##\n`").replace("<INPUT_END>", "`\n")
@@ -171,9 +181,16 @@ def generate_recipes(params: DictConfig, logger: logging.Logger):
             if params['main']['prompt']:
                 break
 
-        results.append(title + markdown)
+        if not params['main']['evaluate']:
+            results.append(title + markdown)
+        else:
+            results.append(full_raw_recipe)
+
+    if params['main']['evaluate']:
+        print("=====================================================================================================")
+        return results
 
     with open('results.json', 'w') as f:
         json.dump(results, f, indent=4)
-
+    print("=====================================================================================================")
     return results

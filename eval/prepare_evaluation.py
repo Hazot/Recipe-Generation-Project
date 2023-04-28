@@ -11,38 +11,63 @@
 # Output: The generated recipes are written to a new file named generated_recipes.txt in the same directory as this script.
 #
 # Example usage:
-#    $ python recipe_generator.py
-#    Generating recipes...
-#    Done! 1000 recipes generated and written to generated_recipes.txt.
+import os.path
+from datetime import datetime
+import time
+from hydra.utils import get_original_cwd
+from omegaconf import DictConfig
+import logging
+import random
+from generation.generation import generate_recipes
 
-import re
-from eval_generation import *
+NUM_RECIPES_PER_INGREDIENT_LIST = 10  # DEFAULT: 10
+NUM_TEST_SAMPLE = 100  # DEFAULT: 100 - Number of recipes to sample from the test set to make ingredient sets
 
 
-def main():
-    file_path = '../data/unsupervised_test.txt'
-    num_recipes = 20
-    recipes_ingredients = []
+def get_ingredients(recipe):
+    ingr_start_index = recipe.find("<INPUT_START>")
+    ingr_end_index = recipe.find("<INPUT_END>")
 
-    def getIngredients(recipe):
-        ingr_start_index = recipe.find("<INGR_START>")
-        ingr_end_index = recipe.find("<INGR_END>")
+    ingredients_sequence = recipe[ingr_start_index + len("<INPUT_START>"):ingr_end_index].strip()
+    ingredients = ingredients_sequence.split(" <NEXT_INPUT>")
+    return ','.join(ingredients)
 
-        ingredients_sequence = recipe[ingr_start_index + len("<INGR_START>"):ingr_end_index].strip()
-        ingredients = ingredients_sequence.split(" <NEXT_INGR>")
-        return ','.join(ingredients)
 
-    with open(file_path, 'r', encoding='utf-8') as input_file:
-        print(file_path + "The file was opened !")
+def generate_finetuned_recipes(params: DictConfig, logger: logging.Logger):
+    logger.info(f"Generating {NUM_RECIPES_PER_INGREDIENT_LIST * NUM_TEST_SAMPLE} recipes for evaluation.")
+    params['main']['num_promps'] = NUM_RECIPES_PER_INGREDIENT_LIST
+    folder_name_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    local_path = get_original_cwd() + "/"
+    eval_file_path = local_path + params['main']['eval_data_file']
+    finetuned_folder_path = local_path + f"results/{folder_name_time}/"
+    finetuned_file_path = finetuned_folder_path + f"recipe_list_{params['main']['model_type']}.txt"
 
-        with open('recipe_list.txt', 'w') as output_file:
-            for i, line in enumerate(input_file):
-                if (i < num_recipes):
-                    ingredients = getIngredients(line)
-                    generated_recipes = generate_recipe(ingredients=ingredients)
-                    for generated_recipe in generated_recipes:
-                        output_file.write(generated_recipe)
-                    print("wrote in recipe_list.txt" )
+    generated_recipes = []
+    start_generation_time = datetime.now()
 
-if __name__ == '__main__':
-    main()
+    with open(eval_file_path, 'r') as input_file:
+        logger.info(f"{eval_file_path} is being read...")
+        content = input_file.readlines()
+        nb_of_lines = len(content) // 2
+        sampled_indexes = random.sample(range(nb_of_lines), NUM_TEST_SAMPLE)
+        recipes = [content[2 * idx] for idx in sampled_indexes]
+
+    for recipe in recipes:
+        ingredients = get_ingredients(recipe)
+        params['main']['prompt'] = ingredients
+        logger.info(f"Generating recipes for the following ingredients: {ingredients}")
+        generated_recipe_set = generate_recipes(params=params, logger=logger)
+        generated_recipes.extend(generated_recipe_set)
+        elapsed_time = datetime.now() - start_generation_time
+        logger.info(f"Elapsed time: {elapsed_time.seconds} seconds")
+
+    logger.info("Number of generated recipes: " + str(len(generated_recipes)))
+    logger.info(f"Writing generated recipes to {finetuned_file_path}...")
+
+    if not os.path.exists(finetuned_folder_path):
+        os.makedirs(finetuned_folder_path)
+    with open(finetuned_file_path, 'w') as output_file:
+        for generated_recipe in generated_recipes:
+            output_file.write(generated_recipe + "\n")
+            output_file.write("\n")
+        logger.info(f"Generated recipes successfully written to {finetuned_file_path}!")

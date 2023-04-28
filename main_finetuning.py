@@ -19,7 +19,7 @@ def create_dataset(params, logger):
     tokenize(params=params, logger=logger)  # takes 45 minutes
 
 
-@hydra.main(config_path="config", config_name="config_finetuning")
+@hydra.main(config_path="config", config_name="config_finetuning", version_base="1.3")
 def main(params: DictConfig):
 
     # setup basic logging

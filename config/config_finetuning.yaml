@@ -1,7 +1,7 @@
 main:
 
     # User-defined variables
-    model_type: gpt2  # "Model type selected in the list"
+    model_type: 'gpt2'  # ['gpt2', 'opt'] "Model type selected in the list"
     per_gpu_train_batch_size: 2  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
     per_gpu_eval_batch_size: 2  # "Batch size per GPU/CPU for evaluation. (from paper, gpt-2 was 4)"
     gradient_accumulation_steps: 1  # "Number of updates steps to accumulate before performing a backward/update pass."
@@ -21,10 +21,10 @@ main:
     warmup_steps: 0  # "Linear warmup over warmup_steps."
 
     # Hardware and logging pre-defined variables
-    train_data_file: data/unsupervised_train_filtered.txt  # "The input training data file (a text file)."
-    eval_data_file: data/unsupervised_test_filtered.txt  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
-    output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
-    output_dir_to_eval: models_to_evaluate/  # "The output directory where the model predictions checkpoints to eval are."
+    train_data_file: 'data/unsupervised_train_filtered.txt'  # "The input training data file (a text file)."
+    eval_data_file: 'data/unsupervised_test_filtered.txt'  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    output_dir: 'outputs/'  # "The output directory where the model predictions and checkpoints will be written."
+    output_dir_to_eval: 'models_to_evaluate/'  # "The output directory where the model predictions checkpoints to eval are."
     no_cuda: False  # "Avoid using CUDA when available"
     n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
     cache_dir: ''  # "Optional directory to store the pre-trained models downloaded from s3 (instead of the default one)"
@@ -39,11 +39,11 @@ main:
     aws_bucket: ''  # "Whether to upload to specified bucket."
 
     # Overwritten variables (depends on the model type)
-    tokenizer_name: gpt2  # "Optional pretrained tokenizer name or path if not the same as
-    model_name_or_path: gpt2 # "The model checkpoint for weights initialization."
+    tokenizer_name: ''  # "Optional pretrained tokenizer name or path if not the same as
+    model_name_or_path: '' # "The model checkpoint for weights initialization."
     evaluate_during_training: True  # "Run evaluation during training at each save step."
     do_lower_case: False # "Set this flag if you are using an uncased model."
-    truncation_side: 'right' # "Truncation side selection (left or right)."
+    truncation_side: '' # "Truncation side selection (left or right)."
 
 # Default parameters for GPT2
 gpt2:

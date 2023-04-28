@@ -1,7 +1,8 @@
 main:
 
     # User-defined variables
-    model_type: gpt2  # [gpt2, opt] "Model type selected in the list"
+    evaluate: True  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set."
+    model_type: 'gpt2'  # ['gpt2', 'opt'] "Model type selected in the list"
     prompt: 'ham, egg, butter, milk, leek, sour creme, bread, sausage'
 #    prompt: 'mayonnaise, Dijon mustard, chicken, lemon, rice, vegetable oil, white sugar, cayenne pepper, Worcestershire sauce'
     num_promps: 10  # "Number of recipes to generate."
@@ -12,9 +13,9 @@ main:
     top_p: 0.9  # "The cumulative probability of parameter highest probability vocabulary tokens to keep for nucleus sampling."
 
     # Hardware and logging pre-defined variables
-    train_data_file: data/unsupervised_train_filtered.txt  # "The input training data file (a text file)."
-    output_dir: outputs/  # "The output directory where the model predictions and checkpoints will be written."
-    eval_data_file: data/unsupervised_test_filtered.txt   # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    train_data_file: 'data/unsupervised_train_filtered.txt'  # "The input training data file (a text file)."
+    eval_data_file: 'data/unsupervised_test_filtered.txt'   # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    output_dir: 'outputs/'  # "The output directory where the model predictions and checkpoints will be written."
     output_dir_to_eval: None  # "The output directory where the model predictions checkpoints to eval are."
     no_cuda: False  # "Avoid using CUDA when available"
     n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)

@@ -2,9 +2,11 @@ import hydra
 from omegaconf import DictConfig
 import logging
 
+from eval.prepare_evaluation import generate_finetuned_recipes
 from generation.generation import generate_recipes
 
-@hydra.main(config_path="config", config_name="config_generation")
+
+@hydra.main(config_path="config", config_name="config_generation", version_base="1.3")
 def main(params: DictConfig):
     # setup basic logging
     logger = logging.getLogger(__name__)
@@ -21,9 +23,18 @@ def main(params: DictConfig):
     else:
         raise Exception("Unknown model type")
 
-    logger.info("Generating recipes with the following model:", str(params['main']['model_type']))
-    logger.info("The generation will be done with the following parameters:", params['main'])
-    generate_recipes(params=params, logger=logger)
+    # Set the absolute path to the model, if the model has already been trained
+    params['main']['model_name_or_path'] = hydra.utils.get_original_cwd() + params['main']['model_name_or_path']
+
+    if not params['main']['evaluate']:
+        logger.info("Generating recipes to print.")
+        logger.info(f"Generating recipes with the following model: {params['main']['model_type']}")
+        logger.info(f"The generation will be done with the following parameters: {params['main']}")
+        generate_recipes(params=params, logger=logger)
+    else:
+        logger.info("No generation will be done, the evaluate flag is set to false.")
+        generate_finetuned_recipes(params=params, logger=logger)
+        logger.info("Finetuned recipes for evaluation have been successfully generated!")
 
     logger.info("Generation successfully finished!")
 
