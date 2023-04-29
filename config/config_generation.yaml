@@ -1,8 +1,11 @@
 main:
 
-    # User-defined variables
-    evaluate: True  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set."
-    model_type: 'opt'  # ['gpt2', 'opt'] "Model type selected in the list"
+    # Necessary User-defined variables
+    evaluate: False  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set."
+    model_type: 'gpt2'  # ['gpt2', 'opt'] "Model type selected in the list"
+    sample_file_path: 'data/sample.txt'
+
+    # Optional user-defined variables
     prompt: 'ham, egg, butter, milk, leek, sour creme, bread, sausage'
 #    prompt: 'mayonnaise, Dijon mustard, chicken, lemon, rice, vegetable oil, white sugar, cayenne pepper, Worcestershire sauce'
     num_promps: 10  # "Number of recipes to generate."

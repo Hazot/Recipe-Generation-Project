@@ -42,27 +42,38 @@ def generate_finetuned_recipes(params: DictConfig, logger: logging.Logger):
     local_path = get_original_cwd() + "/"
     eval_file_path = local_path + params['main']['eval_data_file']
     finetuned_folder_path = local_path + f"results/{folder_name_time}/"
-    sample_test_file_path = finetuned_folder_path + f"sampled_test_recipes_{params['main']['model_type']}.txt"
-    finetuned_file_path = finetuned_folder_path + f"recipe_list_{params['main']['model_type']}.txt"
+    sample_test_file_path = finetuned_folder_path + f"sample_{params['main']['model_type']}.txt"
+    finetuned_file_path = finetuned_folder_path + f"finetuned_{params['main']['model_type']}.txt"
     if not os.path.exists(finetuned_folder_path):
         os.makedirs(finetuned_folder_path)
 
     generated_recipes = []
     start_generation_time = datetime.now()
 
-    with open(eval_file_path, 'r') as input_file:
-        logger.info(f"{eval_file_path} is being read...")
-        content = input_file.readlines()
-        nb_of_lines = len(content) // 2
-        sampled_indexes = random.sample(range(nb_of_lines), NUM_TEST_SAMPLE)
-        recipes = [content[2 * idx] for idx in sampled_indexes]
+    if params['main']['sample_file_path']:
+        # Generate recipes for each ingredient set from a saved sample of the test set
+        saved_sample_test_file_path = local_path + params['main']['sample_file_path']
+        if not os.path.exists(saved_sample_test_file_path):
+            raise f"{saved_sample_test_file_path} does not exist."
+        with open(saved_sample_test_file_path, 'r') as saved_file:
+            content = saved_file.readlines()
+            recipes = [content[i * 2].replace('\n', '') for i in range(len(content) // 2)]
+    else:
+        # Sample recipes from the test set
+        with open(eval_file_path, 'r') as input_file:
+            logger.info(f"{eval_file_path} is being read...")
+            content = input_file.readlines()
+            nb_of_lines = len(content) // 2
+            sampled_indexes = random.sample(range(nb_of_lines), NUM_TEST_SAMPLE)
+            recipes = [content[2 * idx] for idx in sampled_indexes]
 
-    # Save the sampled test recipes
-    with open(sample_test_file_path, 'w') as output_file:
-        for recipe in recipes:
-            output_file.write(recipe + "\n")
-        logger.info(f"Sampled recipes successfully written to {sample_test_file_path}!")
+        # Save the sampled test recipes
+        with open(sample_test_file_path, 'w') as output_file:
+            for recipe in recipes:
+                output_file.write(recipe + "\n")
+            logger.info(f"Sampled recipes successfully written to {sample_test_file_path}!")
 
+    # Generate recipes for each ingredient set
     for num_recipe, recipe in enumerate(recipes):
         ingredients = get_ingredients(recipe)
         params['main']['prompt'] = ingredients
