@@ -8,6 +8,54 @@ from hydra.utils import get_original_cwd
 from tqdm import tqdm
 
 
+def df_to_plaintext_file(input_df, output_file, logger):
+    pattern = r"<RECIPE_START>"
+    logger.info("Writing to", output_file)
+    with open(output_file, 'w') as f:
+        for index, row in tqdm(input_df.iterrows()):
+            if index % 100000 == 0:
+                logger.info("| " + str(index))
+            if type(row.NER) != str:
+                continue
+            title = row.title
+            directions = json.loads(row.directions)
+            ingredients = json.loads(row.ingredients)
+            ner = json.loads(row.NER)
+            res = "<RECIPE_START> <INPUT_START> " + " <NEXT_INPUT> ".join(ner) + " <INPUT_END> <INGR_START> " + \
+                  " <NEXT_INGR> ".join(ingredients) + " <INGR_END> <INSTR_START> " + \
+                  " <NEXT_INSTR> ".join(
+                      directions) + " <INSTR_END> <TITLE_START> " + title + " <TITLE_END> <RECIPE_END>"
+            if re.search(pattern, res):
+                f.write("{}\n".format(res))
+            else:
+                continue
+        logger.info('last index:', index)
+
+def filter_txt(input_path, output_path, logger):
+    logger.info("Filtering", input_path, "to", output_path)
+    count = 0
+    bad_lines = pd.DataFrame()
+    pattern1 = r"<RECIPE_START>"
+    pattern2 = r"<RECIPE_END>"
+    pattern3 = r"<INPUT_START>"
+    pattern4 = r"<INPUT_END>"
+    with open(input_path, 'r') as f_in:
+        with open(output_path, 'w') as f_out:
+            for i, row in tqdm(enumerate(f_in), desc="Filtering"):
+                if re.search(pattern1, row) and re.search(pattern2, row):
+                    ingr_start_index = row.find("<INPUT_START>")
+                    ingr_end_index = row.find("<INPUT_END>")
+                    if ingr_end_index - ingr_start_index > 10 and ingr_end_index - ingr_start_index < 300:
+                        f_out.write("{}\n".format(row))
+                        continue
+                else:
+                    d = {'index': i,
+                         'txt': row}
+                    new_row = pd.DataFrame(d, index=[0])
+                    bad_lines = pd.concat([bad_lines, new_row]).reset_index(drop=True)
+                    count += 1
+
+
 def dataset2text(params, logger):
     local_path = os.path.normpath(get_original_cwd())
 
@@ -58,61 +106,22 @@ def dataset2text(params, logger):
         test.reset_index(drop=True, inplace=True)
         valid = None
 
-    def df_to_plaintext_file(input_df, output_file):
-        pattern = r"<RECIPE_START>"
-        logger.info("Writing to", output_file)
-        with open(output_file, 'w') as f:
-            for index, row in tqdm(input_df.iterrows()):
-                if index % 100000 == 0:
-                    logger.info("| " + str(index))
-                if type(row.NER) != str:
-                    continue
-                title = row.title
-                directions = json.loads(row.directions)
-                ingredients = json.loads(row.ingredients)
-                ner = json.loads(row.NER)
-                res = "<RECIPE_START> <INPUT_START> " + " <NEXT_INPUT> ".join(ner) + " <INPUT_END> <INGR_START> " + \
-                      " <NEXT_INGR> ".join(ingredients) + " <INGR_END> <INSTR_START> " + \
-                      " <NEXT_INSTR> ".join(
-                          directions) + " <INSTR_END> <TITLE_START> " + title + " <TITLE_END> <RECIPE_END>"
-                if re.search(pattern, res):
-                    f.write("{}\n".format(res))
-                else:
-                    continue
-            logger.info('last index:', index)
-
-    def filter_txt(input_path, output_path):
-        logger.info("Filtering", input_path, "to", output_path)
-        count = 0
-        bad_lines = pd.DataFrame()
-        pattern1 = r"<RECIPE_START>"
-        pattern2 = r"<RECIPE_END>"
-        with open(input_path, 'r') as f_in:
-            with open(output_path, 'w') as f_out:
-                for i, row in tqdm(enumerate(f_in), desc="Filtering"):
-                    if re.search(pattern1, row) and re.search(pattern2, row):
-                        f_out.write("{}\n".format(row))
-                        continue
-                    else:
-                        d = {'index': i,
-                             'txt': row}
-                        new_row = pd.DataFrame(d, index=[0])
-                        bad_lines = pd.concat([bad_lines, new_row]).reset_index(drop=True)
-                        count += 1
-
     # Create the files
-    df_to_plaintext_file(train, local_path + '/data/unsupervised_train.txt')  # (1896219, 7)
+    df_to_plaintext_file(train, local_path + '/data/unsupervised_train.txt', logger)  # (1896219, 7)
     if params['main']['create_valid']:
-        df_to_plaintext_file(valid, local_path + '/data/unsupervised_valid.txt')  # (99802, 7)
-    df_to_plaintext_file(test, local_path + '/data/unsupervised_test.txt')  # (105054, 7)
+        df_to_plaintext_file(valid, local_path + '/data/unsupervised_valid.txt', logger)  # (99802, 7)
+    df_to_plaintext_file(test, local_path + '/data/unsupervised_test.txt', logger)  # (105054, 7)
 
     # Filter the files
     filter_txt(local_path + '/data/unsupervised_train.txt',
-               local_path + '/data/unsupervised_train_filtered.txt')
+               local_path + '/data/unsupervised_train_filtered.txt',
+               logger)
 
     if params['main']['create_valid']:
         filter_txt(local_path + '/data/unsupervised_valid.txt',
-                   local_path + '/data/unsupervised_valid_filtered.txt')
+                   local_path + '/data/unsupervised_valid_filtered.txt',
+                   logger)
 
     filter_txt(local_path + '/data/unsupervised_test.txt',
-               local_path + '/data/unsupervised_test_filtered.txt')
+               local_path + '/data/unsupervised_test_filtered.txt',
+               logger)

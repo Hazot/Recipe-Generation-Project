@@ -36,11 +36,16 @@ def get_ingredients(recipe):
 def generate_finetuned_recipes(params: DictConfig, logger: logging.Logger):
     logger.info(f"Generating {NUM_RECIPES_PER_INGREDIENT_LIST * NUM_TEST_SAMPLE} recipes for evaluation.")
     params['main']['num_promps'] = NUM_RECIPES_PER_INGREDIENT_LIST
+
+    # Initializations of the folders and paths
     folder_name_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     local_path = get_original_cwd() + "/"
     eval_file_path = local_path + params['main']['eval_data_file']
     finetuned_folder_path = local_path + f"results/{folder_name_time}/"
+    sample_test_file_path = finetuned_folder_path + f"sampled_test_recipes_{params['main']['model_type']}.txt"
     finetuned_file_path = finetuned_folder_path + f"recipe_list_{params['main']['model_type']}.txt"
+    if not os.path.exists(finetuned_folder_path):
+        os.makedirs(finetuned_folder_path)
 
     generated_recipes = []
     start_generation_time = datetime.now()
@@ -52,9 +57,16 @@ def generate_finetuned_recipes(params: DictConfig, logger: logging.Logger):
         sampled_indexes = random.sample(range(nb_of_lines), NUM_TEST_SAMPLE)
         recipes = [content[2 * idx] for idx in sampled_indexes]
 
-    for recipe in recipes:
+    # Save the sampled test recipes
+    with open(sample_test_file_path, 'w') as output_file:
+        for recipe in recipes:
+            output_file.write(recipe + "\n")
+        logger.info(f"Sampled recipes successfully written to {sample_test_file_path}!")
+
+    for num_recipe, recipe in enumerate(recipes):
         ingredients = get_ingredients(recipe)
         params['main']['prompt'] = ingredients
+        logger.info(f"Set of ingredients #{num_recipe + 1}")
         logger.info(f"Generating recipes for the following ingredients: {ingredients}")
         generated_recipe_set = generate_recipes(params=params, logger=logger)
         generated_recipes.extend(generated_recipe_set)
@@ -64,8 +76,6 @@ def generate_finetuned_recipes(params: DictConfig, logger: logging.Logger):
     logger.info("Number of generated recipes: " + str(len(generated_recipes)))
     logger.info(f"Writing generated recipes to {finetuned_file_path}...")
 
-    if not os.path.exists(finetuned_folder_path):
-        os.makedirs(finetuned_folder_path)
     with open(finetuned_file_path, 'w') as output_file:
         for generated_recipe in generated_recipes:
             output_file.write(generated_recipe + "\n")

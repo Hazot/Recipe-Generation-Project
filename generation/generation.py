@@ -99,19 +99,24 @@ def sample_sequence(
     return generated
 
 
-def generate_recipes(params: DictConfig, logger: logging.Logger):
+def generate_recipes(params: DictConfig, logger: logging.Logger, model=None, tokenizer=None):
 
     # Initializations
-    device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")
-    params['main']['n_gpu'] = torch.cuda.device_count() if params['main']['n_gpu'] == -1 else params['main']['n_gpu']
+    if not model or not tokenizer:
+        device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")
+        params['main']['n_gpu'] = torch.cuda.device_count() if params['main']['n_gpu'] == -1 else params['main']['n_gpu']
 
-    logger.info("device: {} | n_gpu: {}".format(device, params['main']['n_gpu']))
+        logger.info("device: {} | n_gpu: {}".format(device, params['main']['n_gpu']))
 
-    set_seed(params=params)
+        set_seed(params=params)
 
-    # Update checkpoint path for current local directory
-    tokenizer, max_token_len = create_tokenizer(params=params, model_name_or_path=params['main']['model_name_or_path'])
-    model = create_model(params=params, model_name_or_path=params['main']['model_name_or_path'])
+        # Update checkpoint path for current local directory
+        tokenizer, max_token_len = create_tokenizer(params=params, model_name_or_path=params['main']['model_name_or_path'])
+        model = create_model(params=params, model_name_or_path=params['main']['model_name_or_path'])
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")
+        params['main']['n_gpu'] = torch.cuda.device_count() if params['main']['n_gpu'] == -1 else params['main']['n_gpu']
+
     model.to(device)
     model.eval()
 
@@ -185,6 +190,10 @@ def generate_recipes(params: DictConfig, logger: logging.Logger):
             results.append(title + markdown)
         else:
             results.append(full_raw_recipe)
+
+    del model
+    del tokenizer
+    torch.cuda.empty_cache()
 
     if params['main']['evaluate']:
         print("=====================================================================================================")
