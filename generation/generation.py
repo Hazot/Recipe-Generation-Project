@@ -31,6 +31,40 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer, AutoModelForCausalLM, A
 from utils.model_utils import create_tokenizer, create_model
 
 
+def measurement_fix(text):
+    def convert_to_highest_us_measurement(ingredient):
+        conversion_table = {
+            'tsp': {'tbsp': 1 / 3, 'oz': 1 / 6, 'c': 1 / 48, 'lb': 1 / 96, 'stick': 1 / 32},
+            'tbsp': {'oz': 1 / 2, 'c': 1 / 16, 'lb': 1 / 32, 'stick': 1 / 8},
+            'oz': {'c': 1 / 8, 'lb': 1 / 16, 'stick': 1 / 4},
+            'c': {'lb': 1 / 2, 'stick': 2},
+            'stick': {'lb': 1 / 4},
+        }
+
+        for unit, conversions in conversion_table.items():
+            if unit in ingredient:
+                for to_unit, factor in conversions.items():
+                    try:
+                        amount = float(ingredient.split(" ")[0])
+                        converted_amount = amount * factor
+                    except ValueError:
+                        return ingredient
+                    if converted_amount >= 1:
+                        return f"{round(converted_amount, 2)} {to_unit} {' '.join(ingredient.split(' ')[1:])}"
+        return ingredient
+
+    recipe = text
+    ingredient_start = recipe.find("<INGR_START> ") + len("<INGR_START> ")
+    ingredient_end = recipe.find(" <INGR_END>")
+    ingredients = recipe[ingredient_start:ingredient_end].split("<NEXT_INGR>")
+
+    converted_ingredients = []
+    for ingredient in ingredients:
+        converted_ingredients.append(convert_to_highest_us_measurement(ingredient.strip()))
+
+    return recipe[:ingredient_start] + " <NEXT_INGR> ".join(converted_ingredients) + recipe[ingredient_end:]
+
+
 def set_seed(params):
     np.random.seed(params['main']['seed'])
     torch.manual_seed(params['main']['seed'])
