@@ -1,25 +1,16 @@
 # Recipe Generation 
 
-This is basically a fork from https://github.com/Glorf/recipenlg.
-The objective of this project is to generate high-quality, context-aware cooking recipes using the latest advancements in natural language processing. The project is targeted towards users who are interested in cooking and need help in generating recipes based on a list of ingredients.
+This is basically a fork from https://github.com/Glorf/recipenlg. Please refer to the original repo for more details and to use as reference.
+
+The objective of this project is to generate high-quality, context-aware cooking recipes by exploring and using the latest advancements in natural language processing. The project is targeted towards users who are interested in cooking and want help in generating recipes based on a list of ingredients as an input.
 
 ## Environment installation
 
-You need Anaconda or venv.
+You need Miniconda or Virtualenv to run this project. We recommend using Miniconda. We are using Python 3.9.
 
 ### For Anaconda
 
-If you are running on CPU:
-```
-conda env create -f environment.yml
-```
-
-
-If you are running on GPU:
-1. please download the right CUDA version for you GPU at https://pytorch.org/get-started/locally/.
-2. comment the lines in environment.yml for `torch`, `torchvision` and `torchaudio`.
-
-Afterwards, run:
+If you are running on CPU (**only for debugging/coding purposes**), run
 ```
 conda env create -f environment.yml
 ```
@@ -31,9 +22,21 @@ pip install -r requirements.txt
 ```
 
 
+If you are running on GPU (CUDA 11.7 or 11.8), run:
+```
+conda env create -f gpu_environment.yml
+```
+
+or
+
+```
+pip install -r gpu_requirements.txt
+```
+
+
 ## Finetuning a model
 
-The default config `/config/config_finetuning.yaml` will first create the necessary datasets (requires 10GB of space and 45 minutes). Afterwards, this will start the fine-tuning of the model.
+The default config `/config/config_finetuning.yaml` will first create the necessary datasets (requires 10GB of space and 45 minutes) for the GPT2 (or specified) model. Afterwards, this will start the fine-tuning of the specified model in the config (gpt2, opt, llama, lora).
 
 ```
 python main_finetuning.py
@@ -41,7 +44,7 @@ python main_finetuning.py
 
 ## Generating recipes
 
-The default config `/config/config_generation.yaml` will create recipes from the GPT2 model. You can set the prompt and the number of times you want the generation to repeat for a specific prompt. This is also used to create a finetuned dataset of recipes which is used in the evaluation pipeline.
+The default config `/config/config_generation.yaml` will create recipes from the GPT2 (or specified) model. You can set the prompt and the number of times you want the generation to repeat for a specific prompt. This is also used to create a fine-tuned dataset of recipes which is used in the evaluation pipeline.
 
 ```
 python run_generation.py
@@ -49,18 +52,11 @@ python run_generation.py
 
 ## Evaluating the models
 
-After creating the files by using:
-
-```
-python run_generation.py main.evaluate=True
-```
-
-you can run the cells in `/eval/evalutation.ipynb` to get scores based on different metrics.
-
+The default config `/config/config_generation.yaml` has a `evaluate` flag which will evaluate the model on the test set. This will generate recipes and evaluate them using various metrics. The results will be saved in the `results` folder.
 
 ## References
 
-If you use the RecipeNLG dataset and this code or the original code, use the following BibTeX entry:
+If you use the RecipeNLG dataset and this code or the original code, use the following BibTeX entry since the work is closely related to the following paper:
 
 ```
 @inproceedings{bien-etal-2020-recipenlg,
@@ -83,6 +79,6 @@ If you use the RecipeNLG dataset and this code or the original code, use the fol
 
 ## Authors
 
-- [@Mathieu Peloquin](https://www.github.com/mathieupelo)
-- [@Joel Sageau ](https://www.github.com/JOELSAGEAU)
-- [@Kevin Lessard](https://www.github.com/Hazot)
+- [@Kevin Lessard](https://www.github.com/Hazot) ([kevin.lessard@umontreal.ca](kevin.lessard@umontreal.ca))
+- [@Joel Sageau ](https://www.github.com/JOELSAGEAU) ([joel.sageau@umontreal.ca](joel.sageau@umontreal.ca))
+- [@Mathieu Peloquin](https://www.github.com/mathieupelo) ([mathieu.peloquin.1@umontreal.ca](mathieu.peloquin.1@umontreal.ca))
