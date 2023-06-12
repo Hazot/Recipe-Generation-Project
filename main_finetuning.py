@@ -1,5 +1,6 @@
 import hydra
 from omegaconf import DictConfig
+import os
 import logging
 
 from finetuning.finetuning import trainer_finetuning
@@ -10,8 +11,8 @@ from utils.dataset2text import dataset2text
 logger = logging.getLogger(__name__)
 
 
-@hydra.main(config_path="config", config_name="config_finetuning", version_base="1.3")
-def main(params: DictConfig):
+@hydra.main(config_path="config", config_name="config_finetuning", version_base=None)
+def main(params: DictConfig) -> None:
 
     # setup basic logging
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -43,7 +44,6 @@ def main(params: DictConfig):
     trainer_finetuning(params=params, logger=logger)
 
     logger.info("Training successfully finished!")
-
 
 if __name__ == "__main__":
     main()

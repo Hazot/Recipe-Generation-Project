@@ -10,27 +10,20 @@ You need Miniconda or Virtualenv to run this project. We recommend using Minicon
 
 ### For Anaconda
 
-If you are running on CPU (**only for debugging/coding purposes**), run
-```
-conda env create -f environment.yml
-```
+First install PyTorch 2.0.1 for your device: https://pytorch.org/get-started/locally/. We recommend using CUDA 11.7.
 
-or
-
+Afterwards, you can install the rest of the librairies.
 ```
 pip install -r requirements.txt
 ```
 
-
-If you are running on GPU (CUDA 11.7 or 11.8), run:
-```
-conda env create -f gpu_environment.yml
-```
-
-or
+To run QLoRa, please install these:
 
 ```
-pip install -r gpu_requirements.txt
+pip install -U bitsandbytes
+pip install -U git+https://github.com/huggingface/transformers.git 
+pip install -U git+https://github.com/huggingface/peft.git
+pip install -U git+https://github.com/huggingface/accelerate.git
 ```
 
 

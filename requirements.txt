@@ -1,4 +1,5 @@
 language-tool-python
+pandas
 textstat
 scipy
 numpy
@@ -17,15 +18,9 @@ textblob
 spacy
 scrapy
 pymongo
-torch
 transformers
 h5py
 boto3
 tensorboard
 hydra-core
 sentencepiece
-git+https://github.com/huggingface/transformers.git
-peft
-fire
-accelerate
-bitsandbytes
