@@ -38,9 +38,8 @@ def print_trainable_parameters(model):
 
 def trainer_lora(params: DictConfig):
     # model/data params
-    base_model = params['lora']['model_name_or_path']
-    data_path = hydra.utils.get_original_cwd() + "/data/llama_recipes_max_test.json"
-    output_dir = params['lora']['output_dir']
+    data_path = hydra.utils.get_original_cwd() + "/data/lora_recipes_100000.json"
+    output_dir = params['main']['output_dir']
 
     # training hyperparams
     batch_size = 1
@@ -67,8 +66,8 @@ def trainer_lora(params: DictConfig):
     gradient_accumulation_steps = batch_size // micro_batch_size
 
     # Initializations
-    device = torch.device("cuda" if torch.cuda.is_available() and not params['lora']['no_cuda'] else "cpu")
-    params['lora']['n_gpu'] = torch.cuda.device_count()
+    device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")
+    params['main']['n_gpu'] = torch.cuda.device_count()
 
     model_id = params['main']['model_name_or_path']  # Originally "EleutherAI/gpt-neox-20b"
     bnb_config = BitsAndBytesConfig(

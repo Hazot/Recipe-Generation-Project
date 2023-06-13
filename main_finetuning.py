@@ -4,6 +4,7 @@ import os
 import logging
 
 from finetuning.finetuning import trainer_finetuning
+from finetuning.json_lora_finetuning import trainer_lora
 
 from utils.tokenization import tokenize
 from utils.dataset2text import dataset2text
@@ -41,7 +42,10 @@ def main(params: DictConfig) -> None:
     tokenize(params=params, logger=logger)  # takes 45 minutes
 
     # Train the model as fine-tuning
-    trainer_finetuning(params=params, logger=logger)
+    if not params['main']['json']:
+        trainer_finetuning(params=params, logger=logger)
+    else:
+        trainer_lora(params=params)
 
     logger.info("Training successfully finished!")
 
