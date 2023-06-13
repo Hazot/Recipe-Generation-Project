@@ -57,7 +57,6 @@ def trainer_lora(params: DictConfig):
     lora_alpha = 16
     lora_dropout = 0.05
     lora_target_modules = ["q_proj", "v_proj"]
-    # lora_target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
 
     # llm hyperparams
     train_on_inputs = False  # if False, masks out inputs in loss

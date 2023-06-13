@@ -1,14 +1,11 @@
 import os
 import sys
-from typing import List
 
-import fire
 import torch
 import transformers
 import hydra
 from omegaconf import DictConfig
 from datasets import load_dataset
-from datasets import Dataset
 import pandas as pd
 import numpy as np
 
@@ -20,14 +17,23 @@ import torch.nn as nn
 import bitsandbytes as bnb
 """
 
-from peft import (
-    LoraConfig,
-    get_peft_model,
-    get_peft_model_state_dict,
-    prepare_model_for_int8_training,
-    set_peft_model_state_dict,
-)
-from transformers import LlamaForCausalLM, LlamaTokenizer, AutoModelForCausalLM
+from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model, get_peft_model_state_dict, set_peft_model_state_dict
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+
+
+def print_trainable_parameters(model):
+    """
+    Prints the number of trainable parameters in the model.
+    """
+    trainable_params = 0
+    all_param = 0
+    for _, param in model.named_parameters():
+        all_param += param.numel()
+        if param.requires_grad:
+            trainable_params += param.numel()
+    print(
+        f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
+    )
 
 
 def trainer_lora(params: DictConfig):
@@ -64,13 +70,46 @@ def trainer_lora(params: DictConfig):
     device = torch.device("cuda" if torch.cuda.is_available() and not params['lora']['no_cuda'] else "cpu")
     params['lora']['n_gpu'] = torch.cuda.device_count()
 
-    model = LlamaForCausalLM.from_pretrained(
-        base_model,
-        load_in_8bit=True,
-        # load_in_8bit_fp32_cpu_offload=True,
-        torch_dtype=torch.float16,
-        device_map='auto'
-    )  # takes 5 minutes to load with no feedback whatsoever
+    model_id = params['main']['model_name_or_path']  # Originally "EleutherAI/gpt-neox-20b"
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        params['main']['model_name_or_path'],
+        do_lower_case=params['main']['do_lower_case'],
+        truncation_side=params['main']['truncation_side']
+    )
+    tokenizer.pad_token_id = (
+        0  # unk. we want this to be different from the eos token
+    )
+    tokenizer.padding_side = "right"  # Left: Allows batched inference, we put right for this task.
+    max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
+
+    model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"": 0})
+
+    model.gradient_checkpointing_enable()
+    model = prepare_model_for_kbit_training(model)
+
+    config = LoraConfig(
+        r=8,
+        lora_alpha=16,
+        target_modules=["q_proj", "v_proj"],
+        lora_dropout=0.05,
+        bias="none"
+        # r=8,
+        # lora_alpha=32,
+        # target_modules=["query_key_value"],
+        # lora_dropout=0.05,
+        # bias="none",
+        # task_type="CAUSAL_LM"
+    )
+
+    model = get_peft_model(model, config)
+    print_trainable_parameters(model)
 
     special_tokens = {
         "additional_special_tokens": [
@@ -89,8 +128,6 @@ def trainer_lora(params: DictConfig):
             "<NEXT_INPUT>"
         ]
     }
-
-    tokenizer = LlamaTokenizer.from_pretrained(base_model)
 
     tokenizer.add_special_tokens(special_tokens)
     model.resize_token_embeddings(len(tokenizer))
@@ -143,18 +180,6 @@ def trainer_lora(params: DictConfig):
             ]  # could be sped up, probably
         return tokenized_full_prompt
 
-    model = prepare_model_for_int8_training(model)
-
-    config = LoraConfig(
-        r=lora_r,
-        lora_alpha=lora_alpha,
-        target_modules=lora_target_modules,
-        lora_dropout=lora_dropout,
-        bias="none",
-        task_type="CAUSAL_LM",
-    )
-    model = get_peft_model(model, config)
-
     if data_path.endswith(".json") or data_path.endswith(".jsonl"):
         data = load_dataset("json", data_files=data_path)
     else:
@@ -162,16 +187,10 @@ def trainer_lora(params: DictConfig):
 
     if resume_from_checkpoint:
         # Check the available weights and load them
-        checkpoint_name = os.path.join(
-            resume_from_checkpoint, "pytorch_model.bin"
-        )  # Full checkpoint
+        checkpoint_name = os.path.join(resume_from_checkpoint, "pytorch_model.bin")  # Full checkpoint
         if not os.path.exists(checkpoint_name):
-            checkpoint_name = os.path.join(
-                resume_from_checkpoint, "adapter_model.bin"
-            )  # only LoRA model - LoRA config above has to fit
-            resume_from_checkpoint = (
-                False  # So the trainer won't try loading its state
-            )
+            checkpoint_name = os.path.join(resume_from_checkpoint, "adapter_model.bin")  # only LoRA model - LoRA config above has to fit
+            resume_from_checkpoint = False  # So the trainer won't try loading its state)
         # The two files above have a different name depending on how they were saved, but are actually the same.
         if os.path.exists(checkpoint_name):
             print(f"Restarting from {checkpoint_name}")

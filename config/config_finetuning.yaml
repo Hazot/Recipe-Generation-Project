@@ -45,6 +45,11 @@ main:
     do_lower_case: False # "Set this flag if you are using an uncased model."
     truncation_side: '' # "Truncation side selection (left or right)."
 
+# Hydra
+hydra:
+    job:
+        chdir: True
+
 # Default parameters for GPT2
 gpt2:
     tokenizer_name: 'gpt2'

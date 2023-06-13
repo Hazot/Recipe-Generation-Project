@@ -3,6 +3,7 @@ Fine-tuning the library models for language modeling on a HDF5 dataset (see crea
 """
 
 import glob
+import hydra.utils
 import logging
 import os
 import h5py
@@ -267,15 +268,9 @@ def trainer_finetuning(params: DictConfig, logger: logging.Logger):
 
     logger.info("device: {} n_gpu: {}".format(device, params['main']['n_gpu']))
 
-    tokenizer, max_token_len = create_tokenizer(params, params['main']['tokenizer_name'])
-    model = create_model(params, params['main']['model_name_or_path'])
-    model.resize_token_embeddings(len(tokenizer))
-    if params['main']['model_type'] == 'gpt2' or params['main']['model_type'] == 'opt':
-        model.to(device)
-        ''' model.hf_device_map == code to check the mapping of the model to the hardware '''
-
+    # Load tokenizer and model
     if params['main']['model_type'] == 'lora':
-        model_id = "EleutherAI/gpt-neox-20b"
+        model_id = params['main']['model_name_or_path']  # Originally "EleutherAI/gpt-neox-20b"
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_use_double_quant=True,
@@ -283,7 +278,7 @@ def trainer_finetuning(params: DictConfig, logger: logging.Logger):
             bnb_4bit_compute_dtype=torch.bfloat16
         )
 
-        tokenizer = AutoTokenizer.from_pretrained(model_id)
+        tokenizer, max_token_len = create_tokenizer(params, model_id)
         model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"": 0})
 
         model.gradient_checkpointing_enable()
@@ -291,15 +286,28 @@ def trainer_finetuning(params: DictConfig, logger: logging.Logger):
 
         config = LoraConfig(
             r=8,
-            lora_alpha=32,
-            target_modules=["query_key_value"],
+            lora_alpha=16,
+            target_modules=["q_proj", "v_proj"],
             lora_dropout=0.05,
-            bias="none",
-            task_type="CAUSAL_LM"
+            bias="none"
+            # r=8,
+            # lora_alpha=32,
+            # target_modules=["query_key_value"],
+            # lora_dropout=0.05,
+            # bias="none",
+            # task_type="CAUSAL_LM"
         )
 
         model = get_peft_model(model, config)
         print_trainable_parameters(model)
+    else:
+        tokenizer, max_token_len = create_tokenizer(params, params['main']['tokenizer_name'])
+        model = create_model(params, params['main']['model_name_or_path'])
+        model.resize_token_embeddings(len(tokenizer))
+
+    if params['main']['model_type'] == 'gpt2' or params['main']['model_type'] == 'opt':
+        model.to(device)
+        ''' model.hf_device_map == code to check the mapping of the model to the hardware '''
 
     if params['main']['block_size'] <= 0:
         params['main']['block_size'] = max_token_len  # Our input block size is the max possible
