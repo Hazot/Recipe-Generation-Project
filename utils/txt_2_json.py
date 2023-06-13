@@ -20,9 +20,9 @@ with open(local_path + '/data/unsupervised_train_filtered.txt') as f:
             while i < len(fields):
                 if i == 0:
                     # creating dictionary for each employee
-                    dict2[fields[i]] = line[start:end]
+                    dict2[fields[i]] = "You are a professional chef and you will create a cooking recipe based on a list of ingredients."
                 elif i == 1:
-                    dict2[fields[i]] = ""
+                    dict2[fields[i]] = line[start:end]
                 elif i == 2:
                     dict2[fields[i]] = line
                 i = i + 1
