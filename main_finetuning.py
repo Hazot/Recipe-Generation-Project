@@ -11,7 +11,7 @@ from utils.dataset2text import dataset2text
 logger = logging.getLogger(__name__)
 
 
-@hydra.main(config_path="config", config_name="config_finetuning", version_base=None)
+@hydra.main(config_path="config", config_name="config_finetuning", version_base="1.3")
 def main(params: DictConfig) -> None:
 
     # setup basic logging
@@ -34,10 +34,10 @@ def main(params: DictConfig) -> None:
         raise Exception("Unknown model type")
 
     # Check for existing dataset and/or create the dataset
-    logger.info('Creating txt files')
+    logger.info('Creating txt files...')
     dataset2text(params=params, logger=logger)  # takes 5 minutes
 
-    logger.info('Creating h5 file')
+    logger.info('Creating h5 file...')
     tokenize(params=params, logger=logger)  # takes 45 minutes
 
     # Train the model as fine-tuning

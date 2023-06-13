@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 def df_to_plaintext_file(input_df, output_file, logger):
     pattern = r"<RECIPE_START>"
-    logger.info("Writing to", output_file)
+    logger.info("Writing to " + output_file)
     with open(output_file, 'w') as f:
         for index, row in tqdm(input_df.iterrows()):
             if index % 100000 == 0:
@@ -29,16 +29,14 @@ def df_to_plaintext_file(input_df, output_file, logger):
                 f.write("{}\n".format(res))
             else:
                 continue
-        logger.info('last index:', index)
+        logger.info('last index: ' + str(index))
 
 def filter_txt(input_path, output_path, logger):
-    logger.info("Filtering", input_path, "to", output_path)
+    logger.info("Filtering "+ input_path + " to " + output_path)
     count = 0
     bad_lines = pd.DataFrame()
     pattern1 = r"<RECIPE_START>"
     pattern2 = r"<RECIPE_END>"
-    pattern3 = r"<INPUT_START>"
-    pattern4 = r"<INPUT_END>"
     with open(input_path, 'r') as f_in:
         with open(output_path, 'w') as f_out:
             for i, row in tqdm(enumerate(f_in), desc="Filtering"):
@@ -70,21 +68,21 @@ def dataset2text(params, logger):
         raise Exception("Dataset not found. Please be sure to put full_dataset.csv in the 'data/' folder")
 
     df = pd.read_csv(dataset_path)
-    logger.info('full_dataset df.shape:', df.shape)
+    logger.info('full_dataset df.shape: ' + str(df.shape))
 
-    remove1 = df.loc[df.title.map(lambda x: len(x) < 4)]  # remove recipe with titles with less than 4 characters
-    remove2 = df.loc[df.ingredients.map(lambda x: len(x) < 2)]  # remove recipe with less than 2 ingredients
-    remove3 = df.loc[df.directions.map(lambda x: len(x) < 2 or len(''.join(x)) < 30)]  # remove recipe with less than 2 directions or less than 30 characters
+    remove1 = df.loc[df.title.map(lambda x: len(str(x)) < 4)]  # remove recipe with titles with less than 4 characters
+    remove2 = df.loc[df.ingredients.map(lambda x: len(str(x)) < 2)]  # remove recipe with less than 2 ingredients
+    remove3 = df.loc[df.directions.map(lambda x: len(str(x)) < 2 or len(''.join(str(x))) < 30)]  # remove recipe with less than 2 directions or less than 30 characters
     remove4 = df.loc[df.directions.map(lambda x: re.search('(step|mix all)', ''.join(str(x)), re.IGNORECASE)!=None)]  # remove recipe with directions that contain 'step' or 'mix all'
 
-    logger.info('len of removed lines:', len(remove3)+len(remove2)+len(remove1)+len(remove4))
+    logger.info('len of removed lines: ' + str(len(remove3)+len(remove2)+len(remove1)+len(remove4)))
 
-    df.drop(df[df.title.map(lambda x: len(x)<4)].index, inplace=True)
-    df.drop(df[df.ingredients.map(lambda x: len(x)<2)].index, inplace=True)
-    df.drop(df[df.directions.map(lambda x: len(x) < 2 or len(''.join(x)) < 30)].index, inplace=True)
+    df.drop(df[df.title.map(lambda x: len(str(x))<4)].index, inplace=True)
+    df.drop(df[df.ingredients.map(lambda x: len(str(x))<2)].index, inplace=True)
+    df.drop(df[df.directions.map(lambda x: len(str(x)) < 2 or len(''.join(str(x))) < 30)].index, inplace=True)
     df.drop(df[df.directions.map(lambda x: re.search('(step|mix all)', ''.join(str(x)), re.IGNORECASE)!=None)].index, inplace=True)
 
-    logger.info('dataset df.shape:', df.shape)
+    logger.info('dataset df.shape: ' + str(df.shape))
 
     df.reset_index(drop=True, inplace=True)
 
@@ -93,15 +91,15 @@ def dataset2text(params, logger):
     if params['main']['create_valid']:
         train, valid = train_test_split(train, test_size=0.05)  # Use 5% for test set
         # train: (1896219, 7), valid: (99802, 7)
-        logger.info('train.shape', train.shape)
-        logger.info('valid.shape', valid.shape)
-        logger.info('test.shape', test.shape)
+        logger.info('train.shape: ' + str(train.shape))
+        logger.info('valid.shape: ' + str(valid.shape))
+        logger.info('test.shape: ' + str(test.shape))
         train.reset_index(drop=True, inplace=True)
         valid.reset_index(drop=True, inplace=True)
         test.reset_index(drop=True, inplace=True)
     else:
-        logger.info('train.shape', train.shape)
-        logger.info('test.shape', test.shape)
+        logger.info('train.shape: ' + str(train.shape))
+        logger.info('test.shape: ' + str(test.shape))
         train.reset_index(drop=True, inplace=True)
         test.reset_index(drop=True, inplace=True)
         valid = None

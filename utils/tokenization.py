@@ -28,7 +28,7 @@ def tokenize(params: DictConfig, logger):
         raise Exception("unsupervised_test_filtered.txt not found. Please put this file in the '/data/' folder")
 
     # Create the tokenizer and get the max token length
-    tokenizer, max_token_len = create_tokenizer(params=params, model_name_or_path=params['main']['model_type'])
+    tokenizer, max_token_len = create_tokenizer(params=params, model_name_or_path=params['main']['tokenizer_name'])
 
     # Get the end token id
     end_token_id = tokenizer.convert_tokens_to_ids(["< RECIPE_END>"])[0]

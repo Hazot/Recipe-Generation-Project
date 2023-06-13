@@ -14,12 +14,13 @@ import torch
 
 from hydra.utils import get_original_cwd
 from omegaconf import DictConfig
-from peft import prepare_model_for_int8_training, get_peft_model, LoraConfig
+from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model
 from torch.utils.data import DataLoader, Dataset, SequentialSampler, RandomSampler
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim import AdamW
 from tqdm import tqdm, trange
 from transformers import WEIGHTS_NAME, get_linear_schedule_with_warmup
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 from utils.model_utils import create_model, create_tokenizer
 
@@ -28,6 +29,21 @@ def tardir(path, tar_name):
         for root, dirs, files in os.walk(path):
             for file in files:
                 tar_handle.add(os.path.join(root, file))
+
+
+def print_trainable_parameters(model):
+    """
+    Prints the number of trainable parameters in the model.
+    """
+    trainable_params = 0
+    all_param = 0
+    for _, param in model.named_parameters():
+        all_param += param.numel()
+        if param.requires_grad:
+            trainable_params += param.numel()
+    print(
+        f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
+    )
 
 
 class TextDataset(Dataset):
@@ -259,24 +275,31 @@ def trainer_finetuning(params: DictConfig, logger: logging.Logger):
         ''' model.hf_device_map == code to check the mapping of the model to the hardware '''
 
     if params['main']['model_type'] == 'lora':
-        model = prepare_model_for_int8_training(model)
-        # lora hyperparams
-        lora_r = 8
-        lora_alpha = 16
-        lora_dropout = 0.05
-        lora_target_modules = ["q_proj", "v_proj"]
-        # lora_target_modules = ["q_proj", "k_proj", "v_proj", "o_proj"]
-        config = LoraConfig(
-            r=lora_r,
-            lora_alpha=lora_alpha,
-            target_modules=lora_target_modules,
-            lora_dropout=lora_dropout,
-            bias="none",
-            task_type="CAUSAL_LM",
+        model_id = "EleutherAI/gpt-neox-20b"
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16
         )
-        model = get_peft_model(model, config)
 
-        model.print_trainable_parameters()
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
+        model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"": 0})
+
+        model.gradient_checkpointing_enable()
+        model = prepare_model_for_kbit_training(model)
+
+        config = LoraConfig(
+            r=8,
+            lora_alpha=32,
+            target_modules=["query_key_value"],
+            lora_dropout=0.05,
+            bias="none",
+            task_type="CAUSAL_LM"
+        )
+
+        model = get_peft_model(model, config)
+        print_trainable_parameters(model)
 
     if params['main']['block_size'] <= 0:
         params['main']['block_size'] = max_token_len  # Our input block size is the max possible
