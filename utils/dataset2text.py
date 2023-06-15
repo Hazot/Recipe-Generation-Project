@@ -123,3 +123,6 @@ def dataset2text(params, logger):
     filter_txt(local_path + '/data/unsupervised_test.txt',
                local_path + '/data/unsupervised_test_filtered.txt',
                logger)
+
+    os.remove(local_path + '/data/unsupervised_train.txt')
+    os.remove(local_path + '/data/unsupervised_test.txt')
