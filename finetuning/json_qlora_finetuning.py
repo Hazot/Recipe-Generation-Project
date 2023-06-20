@@ -1,15 +1,14 @@
 import os
-import sys
-
 import torch
 import transformers
 import hydra
 from omegaconf import DictConfig
 from datasets import load_dataset
-import pandas as pd
-import numpy as np
+from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
 from utils.prompter import Prompter
+from utils.model_utils import create_model, create_tokenizer
+from utils.smart_tokenizer import smart_tokenizer_and_embedding_resize
 
 """
 Unused imports:
@@ -17,8 +16,42 @@ import torch.nn as nn
 import bitsandbytes as bnb
 """
 
-from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model, get_peft_model_state_dict, set_peft_model_state_dict
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from peft import (
+    LoraConfig,
+    get_peft_model,
+    get_peft_model_state_dict,
+    prepare_model_for_kbit_training,
+    set_peft_model_state_dict,
+)
+from transformers import LlamaTokenizerFast
+
+
+class SavePeftModelCallback(transformers.TrainerCallback):
+    def save_model(self, args, state, kwargs):
+        print('Saving PEFT checkpoint...')
+        if state.best_model_checkpoint is not None:
+            checkpoint_folder = os.path.join(state.best_model_checkpoint, "adapter_model")
+        else:
+            checkpoint_folder = os.path.join(args.output_dir, f"{PREFIX_CHECKPOINT_DIR}-{state.global_step}")
+
+        peft_model_path = os.path.join(checkpoint_folder, "adapter_model")
+        kwargs["model"].save_pretrained(peft_model_path)
+
+        pytorch_model_path = os.path.join(checkpoint_folder, "pytorch_model.bin")
+        if os.path.exists(pytorch_model_path):
+            os.remove(pytorch_model_path)
+
+    def on_save(self, args, state, control, **kwargs):
+        self.save_model(args, state, kwargs)
+        return control
+
+    def on_train_end(self, args, state, control, **kwargs):
+        def touch(fname, times=None):
+            with open(fname, 'a'):
+                os.utime(fname, times)
+
+        touch(os.path.join(args.output_dir, 'completed'))
+        self.save_model(args, state, kwargs)
 
 
 def print_trainable_parameters(model):
@@ -38,7 +71,7 @@ def print_trainable_parameters(model):
 
 def trainer_lora(params: DictConfig):
     # model/data params
-    data_path = hydra.utils.get_original_cwd() + "/data/lora_recipes_100000.json"
+    data_path = hydra.utils.get_original_cwd() + "/data/json_recipes_train_100000.json"
     output_dir = params['main']['output_dir']
 
     # training hyperparams
@@ -50,10 +83,13 @@ def trainer_lora(params: DictConfig):
     val_set_size = 2000
 
     # lora hyperparams
-    lora_r = 8
-    lora_alpha = 16
-    lora_dropout = 0.05
-    lora_target_modules = ["q_proj", "v_proj"]
+    lora_r: int = 8
+    lora_alpha: int = 16
+    lora_dropout: float = 0.05
+    lora_target_modules = [
+        "q_proj",
+        "v_proj",
+    ]
 
     # llm hyperparams
     train_on_inputs = True  # if False, masks out inputs in loss
@@ -69,29 +105,36 @@ def trainer_lora(params: DictConfig):
     device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")
     params['main']['n_gpu'] = torch.cuda.device_count()
 
-    model_id = params['main']['model_name_or_path']  # Originally "EleutherAI/gpt-neox-20b"
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16
-    )
+    DEFAULT_PAD_TOKEN = "[PAD]"
+    DEFAULT_EOS_TOKEN = "</s>"
+    DEFAULT_BOS_TOKEN = "<s>"
+    DEFAULT_UNK_TOKEN = "<unk>"
 
-    tokenizer = AutoTokenizer.from_pretrained(
-        params['main']['model_name_or_path'],
-        do_lower_case=params['main']['do_lower_case'],
-        truncation_side=params['main']['truncation_side']
-    )
-    tokenizer.pad_token_id = (
-        0  # unk. we want this to be different from the eos token
-    )
-    tokenizer.padding_side = "right"  # Left: Allows batched inference, we put right for this task.
-    max_token_len = tokenizer.max_model_input_sizes["hf-internal-testing/llama-tokenizer"]
+    model = create_model(params, params['main']['model_name_or_path'])
 
-    model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_config, device_map={"": 0})
+    tokenizer, _ = create_tokenizer(params, params['main']['model_name_or_path'])
 
-    model.gradient_checkpointing_enable()
-    model = prepare_model_for_kbit_training(model)
+    if tokenizer._pad_token is None:
+        smart_tokenizer_and_embedding_resize(
+            special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
+            tokenizer=tokenizer,
+            model=model
+        )
+    if isinstance(tokenizer, LlamaTokenizerFast):
+        # LLaMA tokenizer may not have correct special tokens set.
+        # Check and add them if missing to prevent them from being parsed into different tokens.
+        # Note that these are present in the vocabulary.
+        # Note also that `model.config.pad_token_id` is 0 which corresponds to `<unk>` token.
+        tokenizer.eos_token_id = model.config.eos_token_id
+        tokenizer.pad_token_id = model.config.pad_token_id
+        if hasattr(model.config, 'unk_token_id'):
+            tokenizer.unk_token_id = model.config.unk_token_id
+        else:
+            tokenizer.unk_token_id = tokenizer.pad_token_id
+
+    # tokenizer.padding_side = "left"  # Allow batched inference
+
+    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=params['main']['use_gradient_checkpointing'])
 
     config = LoraConfig(
         r=8,
@@ -99,14 +142,16 @@ def trainer_lora(params: DictConfig):
         target_modules=["q_proj", "v_proj"],
         lora_dropout=0.05,
         bias="none"
-        # r=8,
-        # lora_alpha=32,
-        # target_modules=["query_key_value"],
-        # lora_dropout=0.05,
-        # bias="none",
-        # task_type="CAUSAL_LM"
     )
 
+    config = LoraConfig(
+        r=lora_r,
+        lora_alpha=lora_alpha,
+        target_modules=lora_target_modules,
+        lora_dropout=lora_dropout,
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
     model = get_peft_model(model, config)
     print_trainable_parameters(model)
 
@@ -224,22 +269,26 @@ def trainer_lora(params: DictConfig):
             warmup_steps=100,
             num_train_epochs=num_epochs,
             learning_rate=learning_rate,
-            fp16=True,
+            bf16=True,
             logging_steps=10,
-            optim="adamw_torch",
+            optim="paged_adamw_8bit",
             evaluation_strategy="steps" if val_set_size > 0 else "no",
             save_strategy="steps",
             eval_steps=200 if val_set_size > 0 else None,
             save_steps=200,
             output_dir=output_dir,
             save_total_limit=3,
-            load_best_model_at_end=True if val_set_size > 0 else False,
+            # load_best_model_at_end=True if val_set_size > 0 else False,
+            load_best_model_at_end=False,
+            # ddp_find_unused_parameters=False if ddp else None,
             group_by_length=group_by_length,
-            report_to=["tensorboard"]
+            report_to="wandb" if use_wandb else None,
+            run_name=wandb_run_name if use_wandb else None,
         ),
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
         ),
+        callbacks=[SavePeftModelCallback]
     )
     model.config.use_cache = False
 

@@ -27,6 +27,8 @@ def tokenize(params: DictConfig, logger):
     if 'unsupervised_test_filtered.txt' not in os.listdir(local_path + '/data/'):
         raise Exception("unsupervised_test_filtered.txt not found. Please put this file in the '/data/' folder")
 
+    logger.info('Creating H5 file...')
+    logger.info('This may take a while...')
     # Create the tokenizer and get the max token length
     tokenizer, max_token_len = create_tokenizer(params=params, model_name_or_path=params['main']['tokenizer_name'])
 

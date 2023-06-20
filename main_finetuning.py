@@ -4,10 +4,11 @@ import os
 import logging
 
 from finetuning.finetuning import trainer_finetuning
-from finetuning.json_lora_finetuning import trainer_lora
+from finetuning.json_qlora_finetuning import trainer_lora
 
 from utils.tokenization import tokenize
 from utils.dataset2text import dataset2text
+from utils.txt_2_json import txt_2_json
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,14 @@ def main(params: DictConfig) -> None:
     logger.info('Creating txt files...')
     dataset2text(params=params, logger=logger)  # takes 5 minutes
 
-    logger.info('Creating h5 file...')
-    tokenize(params=params, logger=logger)  # takes 45 minutes
+    if not params['main']['json']:
+        # Check for existing h5 file and/or create the h5 file
+        logger.info('Checking for existing h5 file...')
+        tokenize(params=params, logger=logger)  # takes 45 minutes
+    else:
+        # Create the json train and test files
+        logger.info('Creating json file...')
+        txt_2_json(params=params, logger=logger)  # takes 45 minutes
 
     # Train the model as fine-tuning
     if not params['main']['json']:

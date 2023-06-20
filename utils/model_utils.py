@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # coding=utf-8
 
-import hydra
 import torch
 from omegaconf import DictConfig
 
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from transformers import LlamaForCausalLM, LlamaTokenizer
+from transformers import LlamaForCausalLM, LlamaTokenizer, BitsAndBytesConfig
 
 
 def create_model(params: DictConfig, model_name_or_path):
@@ -37,15 +36,18 @@ def create_model(params: DictConfig, model_name_or_path):
         )
     elif params['main']['model_type'] == 'lora':
 
-        # custom_device_map = {'': 0}
-        custom_device_map = 'auto'
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16
+        )
 
         model = LlamaForCausalLM.from_pretrained(
             model_name_or_path,
-            load_in_8bit=True,
-            torch_dtype=torch.float16,
-            device_map='auto',
-            # device_map=custom_device_map
+            quantization_config=bnb_config,
+            device_map={"":0},
+            trust_remote_code=True
         )
     else:
         raise Exception("Unknown model type")

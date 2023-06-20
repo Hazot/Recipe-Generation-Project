@@ -2,12 +2,13 @@ main:
 
     # User-defined variables
     model_type: 'lora'  # ['gpt2', 'opt', 'llama', 'lora'] "Model type selected in the list"
-    json: False  # "Whether to use json for the training dataset."
+    json: True  # "Whether to use json for the training dataset."
+    json_nb_train_recipes: 100000  # "Number of recipes to use for the training dataset."
     per_gpu_train_batch_size: 2  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
     per_gpu_eval_batch_size: 2  # "Batch size per GPU/CPU for evaluation. (from paper, gpt-2 was 4)"
     gradient_accumulation_steps: 1  # "Number of updates steps to accumulate before performing a backward/update pass."
-    do_train: True  # "Whether to run training."
-    do_eval: True  # "Whether to run eval on the dev set."
+    do_train: False  # "Whether to run training."
+    do_eval: False  # "Whether to run eval on the dev set."
     create_valid: False  # "Whether to create a validation set."
     config_name: ''  # "Optional pretrained config name or path if not the same as model_name_or_path"
     num_workers: 0  # "Number of workers to use for the data loader."
@@ -38,6 +39,7 @@ main:
     overwrite_output_dir: True  # "Overwrite the content of the output directory"
     overwrite_cache: False  # "Overwrite the cached training and evaluation sets"
     aws_bucket: ''  # "Whether to upload to specified bucket."
+    use_gradient_checkpointing: True  # "Whether to use gradient checkpointing to save memory"
 
     # Overwritten variables (depends on the model type)
     tokenizer_name: ''  # "Optional pretrained tokenizer name or path if not the same as
@@ -72,9 +74,11 @@ llama:
     do_lower_case: False
     truncation_side: 'right'
 
-# Default parameters for Llama-lora
+# Default parameters for Llama-qlora
 lora:
-    tokenizer_name: 'decapoda-research/llama-7b-hf'
-    model_name_or_path: 'decapoda-research/llama-7b-hf'
+#    tokenizer_name: 'decapoda-research/llama-7b-hf'
+    tokenizer_name: 'huggyllama/llama-7b'
+#    model_name_or_path: 'decapoda-research/llama-7b-hf'
+    model_name_or_path: 'huggyllama/llama-7b'
     do_lower_case: False
     truncation_side: 'right'
