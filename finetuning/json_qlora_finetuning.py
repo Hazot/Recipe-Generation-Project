@@ -70,6 +70,8 @@ def print_trainable_parameters(model):
 
 
 def trainer_lora(params: DictConfig):
+    # https://github.com/vihangd/alpaca-qlora
+
     # model/data params
     data_path = hydra.utils.get_original_cwd() + "/data/json_recipes_train_100000.json"
     output_dir = params['main']['output_dir']
@@ -96,6 +98,14 @@ def trainer_lora(params: DictConfig):
     group_by_length = False  # faster, but produces an odd training loss curve
     resume_from_checkpoint = None  # either training checkpoint or final adapter
     prompt_template_name = "alpaca_short"  # The prompt template to use, will default to alpaca.
+
+    # other params
+    # wandb params
+    wandb_project = ""  # set to "" to disable wandb
+    wandb_run_name = ""
+    wandb_watch = ""  # options: false | gradients | all
+    wandb_log_model = ""  # options: false | true
+    use_wandb = len(wandb_project) > 0
 
     prompter = Prompter(prompt_template_name)
 
@@ -269,7 +279,7 @@ def trainer_lora(params: DictConfig):
             warmup_steps=100,
             num_train_epochs=num_epochs,
             learning_rate=learning_rate,
-            bf16=True,
+            fp16=True,
             logging_steps=10,
             optim="paged_adamw_8bit",
             evaluation_strategy="steps" if val_set_size > 0 else "no",
@@ -288,7 +298,7 @@ def trainer_lora(params: DictConfig):
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
         ),
-        callbacks=[SavePeftModelCallback]
+        # callbacks=[SavePeftModelCallback]
     )
     model.config.use_cache = False
 
