@@ -277,11 +277,13 @@ pyrightconfig.json
 # Start of user-based settings
 data/
 outputs/*
+output_qlora/*
 gpt2/
 opt/
 lora/
 llama/
 results/
+wandb/
 eval/ingredient_list.txt
 eval/ingredient_list.txt
 eval/results.json

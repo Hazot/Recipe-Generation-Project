@@ -90,8 +90,8 @@ def print_trainable_parameters(model):
 def train(
         # model/data params
         base_model: str = "huggyllama/llama-7b",  # the only required argument
-        data_path: str = os.getcwd() + "/data/json_recipes_train_100000.json",
-        output_dir: str = "./lora-alpaca",
+        data_path: str = os.getcwd() + "/data/qlora_recipes_10.json",
+        output_dir: str = os.getcwd() + "/output_qlora",
         device_map: str = "auto",
         # training hyperparams
         batch_size: int = 128,
@@ -99,7 +99,7 @@ def train(
         num_epochs: int = 3,
         learning_rate: float = 3e-4,
         cutoff_len: int = 256,
-        val_set_size: int = 2000,
+        val_set_size: int = 1,
         # lora hyperparams
         lora_r: int = 8,
         lora_alpha: int = 16,
@@ -360,7 +360,7 @@ def train(
             warmup_steps=100,
             num_train_epochs=num_epochs,
             learning_rate=learning_rate,
-            bf16=True,
+            fp16=True,
             logging_steps=10,
             optim="paged_adamw_8bit",
             evaluation_strategy="steps" if val_set_size > 0 else "no",
