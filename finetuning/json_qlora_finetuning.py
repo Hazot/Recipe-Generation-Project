@@ -290,7 +290,7 @@ def trainer_lora(params: DictConfig):
             save_total_limit=3,
             # load_best_model_at_end=True if val_set_size > 0 else False,
             load_best_model_at_end=False,
-            # ddp_find_unused_parameters=False if ddp else None,
+            ddp_find_unused_parameters=False if ddp else None,
             group_by_length=group_by_length,
             report_to="wandb" if use_wandb else None,
             run_name=wandb_run_name if use_wandb else None,
@@ -298,7 +298,7 @@ def trainer_lora(params: DictConfig):
         data_collator=transformers.DataCollatorForSeq2Seq(
             tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
         ),
-        # callbacks=[SavePeftModelCallback]
+        callbacks=[SavePeftModelCallback]
     )
     model.config.use_cache = False
 
