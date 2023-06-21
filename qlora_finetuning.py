@@ -91,7 +91,7 @@ def train(
         # model/data params
         base_model: str = "huggyllama/llama-7b",  # the only required argument
         data_path: str = os.getcwd() + "/data/qlora_recipes_10.json",
-        output_dir: str = os.getcwd() + "/output_qlora",
+        output_dir: str = os.getcwd() + "/outputs",
         device_map: str = "auto",
         # training hyperparams
         batch_size: int = 128,
