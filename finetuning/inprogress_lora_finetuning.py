@@ -41,6 +41,8 @@ from transformers import (WEIGHTS_NAME, get_linear_schedule_with_warmup, AutoMod
 logger = logging.getLogger(__name__)
 
 def trainer_lora(params: DictConfig):
+    #TODO: try to modify the h5 file to be able to use the same code as the transformer traininer using QLoRa
+    #TODO: needs an instruction/input/output based training dataset
     # model/data params
     data_path = hydra.utils.get_original_cwd() + "/data/llama_recipes.json"
 

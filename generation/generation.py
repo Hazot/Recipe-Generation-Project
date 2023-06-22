@@ -32,6 +32,7 @@ from utils.model_utils import create_tokenizer, create_model
 
 
 def measurement_fix(text):
+    # TODO: work on this
     def convert_to_highest_us_measurement(ingredient):
         conversion_table = {
             'tsp': {'tbsp': 1 / 3, 'oz': 1 / 6, 'c': 1 / 48, 'lb': 1 / 96, 'stick': 1 / 32},

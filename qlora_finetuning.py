@@ -122,6 +122,7 @@ def train(
         # experimental
         use_landmark: bool = False,
 ):
+    #TODO: put all this logic inside the main pipeline
     if int(os.environ.get("LOCAL_RANK", 0)) == 0:
         print(
             f"Training Alpaca-LoRA model with params:\n"
