@@ -269,7 +269,7 @@ def trainer_finetuning(params: DictConfig, logger: logging.Logger):
     logger.info("device: {} n_gpu: {}".format(device, params['main']['n_gpu']))
 
     # Load tokenizer and model
-    if params['main']['model_type'] == 'lora':
+    if params['main']['model_type'] == 'qlora':
         model_id = params['main']['model_name_or_path']  # Originally "EleutherAI/gpt-neox-20b"
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,

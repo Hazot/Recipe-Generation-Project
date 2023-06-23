@@ -72,18 +72,18 @@ def trainer_lora(params: DictConfig):
     gradient_accumulation_steps = batch_size // micro_batch_size
 
     # Initializations
-    device = torch.device("cuda" if torch.cuda.is_available() and not params['lora']['no_cuda'] else "cpu")
-    params['lora']['n_gpu'] = torch.cuda.device_count()
+    device = torch.device("cuda" if torch.cuda.is_available() and not params['qlora']['no_cuda'] else "cpu")
+    params['qlora']['n_gpu'] = torch.cuda.device_count()
 
     logger.info('Creating model')
     # model = LlamaForCausalLM.from_pretrained(
-    #     params['lora']['model_name_or_path'],
+    #     params['qlora']['model_name_or_path'],
     #     load_in_8bit=True,
     #     torch_dtype=torch.float16,
     #     device_map='auto'
     # )
     model = AutoModelForCausalLM.from_pretrained(
-        params['opt']['model_name_or_path']
+        params['qlora']['model_name_or_path']
         # load_in_8bit=True,
         # torch_dtype=torch.float16,
         # device_map='auto'

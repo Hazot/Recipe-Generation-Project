@@ -146,7 +146,7 @@ def generate_recipes(params: DictConfig, logger: logging.Logger, model=None, tok
         set_seed(params=params)
 
         # Update checkpoint path for current local directory
-        tokenizer, max_token_len = create_tokenizer(params=params, model_name_or_path=params['main']['model_name_or_path'])
+        tokenizer, _ = create_tokenizer(params=params, model_name_or_path=params['main']['model_name_or_path'])
         model = create_model(params=params, model_name_or_path=params['main']['model_name_or_path'])
     else:
         device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")

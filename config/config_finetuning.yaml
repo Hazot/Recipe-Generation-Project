@@ -1,7 +1,7 @@
 main:
 
     # User-defined variables
-    model_type: 'gpt2'  # ['gpt2', 'opt', 'llama', 'lora'] "Model type selected in the list"
+    model_type: 'gpt2'  # ['gpt2', 'opt', 'llama', 'qlora'] "Model type selected in the list"
     json: False  # "Whether to use json for the training dataset."
     json_nb_train_recipes: 100000  # "Number of recipes to use for the training dataset."
     per_gpu_train_batch_size: 2  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
@@ -76,9 +76,7 @@ llama:
 
 # Default parameters for Llama-qlora
 lora:
-#    tokenizer_name: 'decapoda-research/llama-7b-hf'
-    tokenizer_name: 'huggyllama/llama-7b'
-#    model_name_or_path: 'decapoda-research/llama-7b-hf'
-    model_name_or_path: 'huggyllama/llama-7b'
+    tokenizer_name: 'huggyllama/llama-7b'  # Can also possibly use 'decapoda-research/llama-7b-hf'
+    model_name_or_path: 'huggyllama/llama-7b'  # Can also possibly use 'decapoda-research/llama-7b-hf'
     do_lower_case: False
     truncation_side: 'right'

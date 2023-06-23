@@ -279,8 +279,7 @@ data/
 outputs/*
 gpt2/
 opt/
-lora/
-llama/
+qlora/
 results/
 wandb/
 eval/ingredient_list.txt

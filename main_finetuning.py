@@ -28,10 +28,8 @@ def main(params: DictConfig) -> None:
         params['main'].update(params['gpt2'])
     elif params['main']['model_type'] == 'opt':
         params['main'].update(params['opt'])
-    elif params['main']['model_type'] == 'llama':
-        params['main'].update(params['llama'])
-    elif params['main']['model_type'] == 'lora':
-        params['main'].update(params['lora'])
+    elif params['main']['model_type'] == 'qlora':
+        params['main'].update(params['qlora'])
     else:
         raise Exception("Unknown model type")
 

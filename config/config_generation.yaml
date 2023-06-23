@@ -2,7 +2,7 @@ main:
 
     # Necessary User-defined variables
     evaluate: False  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set."
-    model_type: 'opt'  # ['gpt2', 'opt'] "Model type selected in the list"
+    model_type: 'qlora'  # ['gpt2', 'opt', 'qlora'] "Model type selected in the list"
     sample_file_path: 'data/sample.txt'
 
     # Optional user-defined variables
@@ -33,6 +33,7 @@ main:
     # Overwritten variables (depends on the model type)
     tokenizer_name: '' # "Pretrained tokenizer name or path"
     model_name_or_path: ''  # "The model checkpoint for weights initialization., Use '/' before the first directory."
+    base_model: ''  # "The base model to use for the model initialization. Used for LoRa."
     do_lower_case: False  # "Set this flag if you are using an uncased model."
     truncation_side: 'right' # "Truncation side selection (left or right)."
 
@@ -56,9 +57,10 @@ opt:
     do_lower_case: False
     truncation_side: 'right'
 
-# Default parameters for Llama
-llama:
-    tokenizer_name: 'decapoda-research/llama-7b-hf'
-    model_name_or_path: '/checkpoints/llama/checkpoint-llama/'
+# Default parameters for Llama-qlora
+qlora:
+    tokenizer_name: 'huggyllama/llama-7b'  # Can also possibly use 'decapoda-research/llama-7b-hf'
+    model_name_or_path: '/checkpoints/qlora/'      # Can also possibly use 'decapoda-research/llama-7b-hf'
+    base_model: 'huggyllama/llama-7b'
     do_lower_case: False
     truncation_side: 'right'

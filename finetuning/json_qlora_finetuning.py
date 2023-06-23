@@ -182,6 +182,25 @@ def trainer_lora(params: DictConfig):
     if "rwkv" in base_model.lower():
         bnb_config.bnb_4bit_use_double_quant = False
 
+    special_tokens = {
+        "additional_special_tokens": [
+            "<TITLE_START>",
+            "<TITLE_END>",
+            "<INSTR_START>",
+            "<NEXT_INSTR>",
+            "<INSTR_END>",
+            "<INGR_START>",
+            "<NEXT_INGR>",
+            "<INGR_END>",
+            "<RECIPE_START>",
+            "<RECIPE_END>",
+            "<INPUT_START>",
+            "<INPUT_END>",
+            "<NEXT_INPUT>"
+        ]
+    }
+
+
     if use_landmark:
         from experiments.landmark import LlamaForCausalLM
         model = LlamaForCausalLM.from_pretrained(
@@ -207,6 +226,7 @@ def trainer_lora(params: DictConfig):
         if tokenizer.unk_token is None:
             special_tokens_dict["unk_token"] = DEFAULT_UNK_TOKEN
         special_tokens_dict["additional_special_tokens"] = [mem_token]
+        special_tokens_dict.update(special_tokens)
 
         smart_tokenizer_and_embedding_resize(
             special_tokens_dict=special_tokens_dict,
@@ -225,6 +245,28 @@ def trainer_lora(params: DictConfig):
         )
 
         tokenizer = AutoTokenizer.from_pretrained(base_model)
+
+    special_tokens = {
+        "additional_special_tokens": [
+            "<TITLE_START>",
+            "<TITLE_END>",
+            "<INSTR_START>",
+            "<NEXT_INSTR>",
+            "<INSTR_END>",
+            "<INGR_START>",
+            "<NEXT_INGR>",
+            "<INGR_END>",
+            "<RECIPE_START>",
+            "<RECIPE_END>",
+            "<INPUT_START>",
+            "<INPUT_END>",
+            "<NEXT_INPUT>"
+        ]
+    }
+
+    special_tokens_dict = dict()
+    special_tokens_dict["pad_token"] = DEFAULT_PAD_TOKEN
+    special_tokens_dict["additional_special_tokens"] = special_tokens["additional_special_tokens"]
 
     if tokenizer._pad_token is None:
         smart_tokenizer_and_embedding_resize(
