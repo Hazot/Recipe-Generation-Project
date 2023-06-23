@@ -241,24 +241,6 @@ def train(
 
         tokenizer = AutoTokenizer.from_pretrained(base_model)
 
-    special_tokens = {
-        "additional_special_tokens": [
-            "<TITLE_START>",
-            "<TITLE_END>",
-            "<INSTR_START>",
-            "<NEXT_INSTR>",
-            "<INSTR_END>",
-            "<INGR_START>",
-            "<NEXT_INGR>",
-            "<INGR_END>",
-            "<RECIPE_START>",
-            "<RECIPE_END>",
-            "<INPUT_START>",
-            "<INPUT_END>",
-            "<NEXT_INPUT>"
-        ]
-    }
-
     special_tokens_dict = dict()
     special_tokens_dict["pad_token"] = DEFAULT_PAD_TOKEN
     special_tokens_dict["additional_special_tokens"] = special_tokens["additional_special_tokens"]
