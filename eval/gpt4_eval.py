@@ -43,11 +43,33 @@ def get_ingredients(recipe):
 
 def calculate_amount_of_used_ingredients(recipe):
     input_ingredients = get_input_ingredients(recipe)
+    # Split the input string using the comma as the delimiter
+    input_list = input_ingredients.split(", ")
+
     ingredients = get_ingredients(recipe)
+    # Split the input string using the comma as the delimiter
+    ingredients_list = ingredients.split(", ")
+
+    # Convert the input items and ingredient list to lowercase for case-insensitive comparison
+    input_items_lower = [item.lower() for item in input_list]
+    ingredient_list_lower = [item.lower() for item in ingredients_list]
+
+    # Count the number of input items included in the ingredient list
+    count = 0
+    for ingredient in ingredient_list_lower:
+        for item in input_items_lower:
+            if item in ingredient:
+                print("ITEM PRESENT : " + item)
+                count += 1
+                print(count)
 
     print(input_ingredients)
     print(ingredients)
+    print(count)
 
+    result = count/len(input_items_lower)
+
+    print(result)
 
 recipe = "<RECIPE_START> <INPUT_START> milk <NEXT_INPUT> lemon juice <NEXT_INPUT> fruit cocktail <NEXT_INPUT> peaches <NEXT_INPUT> maraschino cherries <NEXT_INPUT> cherry juice <NEXT_INPUT> sugar <NEXT_INPUT> pineapple <NEXT_INPUT> marshmallows <NEXT_INPUT> pecans <INPUT_END> <INGR_START> 1 tall can evaporated milk, chilled <NEXT_INGR> 2 Tbsp. lemon juice <NEXT_INGR> 1 c. fruit cocktail, drained <NEXT_INGR> 1 c. peaches or 2 c. fresh peaches, sliced <NEXT_INGR> 1 small bottle maraschino cherries, drained <NEXT_INGR> 3 Tbsp. cherry juice <NEXT_INGR> 3/4 c. sugar <NEXT_INGR> 1 c. pineapple chunks, drained <NEXT_INGR> 1 c. miniature marshmallows <NEXT_INGR> 1/2 c. pecans, chopped <INGR_END> <INSTR_START> Beat chilled milk until stiff with electric mixer set at high speed. Add lemon juice. Fold in remaining ingredients. <NEXT_INSTR> Freeze in large covered container or smaller containers for serving. <INSTR_END> <TITLE_START> Pink Snow Salad <TITLE_END> <RECIPE_END>"
 #initializeChatGPT()
