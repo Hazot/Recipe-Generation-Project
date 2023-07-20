@@ -50,11 +50,9 @@ def generate_finetuned_recipes(params: DictConfig, logger: logging.Logger):
     generated_recipes = []
     start_generation_time = datetime.now()
 
-    if params['main']['sample_file_path']:
-        # Generate recipes for each ingredient set from a saved sample of the test set
-        saved_sample_test_file_path = local_path + params['main']['sample_file_path']
-        if not os.path.exists(saved_sample_test_file_path):
-            raise f"{saved_sample_test_file_path} does not exist."
+    saved_sample_test_file_path = local_path + params['main']['sample_file_path']
+    if os.path.exists(saved_sample_test_file_path) and params['main']['sample_file_path'] != "":
+        # Read the sampled recipes from the saved file
         with open(saved_sample_test_file_path, 'r') as saved_file:
             content = saved_file.readlines()
             recipes = [content[i * 2].replace('\n', '') for i in range(len(content) // 2)]
@@ -77,7 +75,7 @@ def generate_finetuned_recipes(params: DictConfig, logger: logging.Logger):
     for num_recipe, recipe in enumerate(recipes):
         ingredients = get_ingredients(recipe)
         params['main']['prompt'] = ingredients
-        logger.info(f"Set of ingredients #{num_recipe + 1}")
+        logger.info(f"Set of ingredients {num_recipe + 1} out of {NUM_TEST_SAMPLE} ")
         logger.info(f"Generating recipes for the following ingredients: {ingredients}")
         generated_recipe_set = generate_recipes(params=params, logger=logger)
         generated_recipes.extend(generated_recipe_set)
