@@ -1,13 +1,12 @@
 main:
 
     # Necessary User-defined variables
-    evaluate: False  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set."
-    model_type: 'qlora'  # ['gpt2', 'opt', 'qlora'] "Model type selected in the list"
-    sample_file_path: 'data/sample.txt'
+    evaluate: False  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set or simply generate recipes to print in console."
+    model_type: 'gpt2'  # ['gpt2', 'opt', 'qlora'] "Model type selected in the list"
+    sample_file_path: ''  # "If we want to specify a relative path of a file containing the ingredients to generate recipes from."
 
     # Optional user-defined variables
-    prompt: 'ham, egg, butter, milk, leek, sour creme, bread, sausage'
-#    prompt: 'mayonnaise, Dijon mustard, chicken, lemon, rice, vegetable oil, white sugar, cayenne pepper, Worcestershire sauce'
+    prompt: 'ham, egg, butter, milk, leek, sour creme, bread, sausage'  # "The prompt to test a single recipe generation."
     num_promps: 10  # "Number of recipes to generate."
     length: 700 # "The maximum number of tokens for each recipe to be generated. -1 is the max the model can handle."
     num_samples: 1  # "Number of samples to generate."
@@ -17,7 +16,7 @@ main:
 
     # Hardware and logging pre-defined variables
     train_data_file: 'data/unsupervised_train_filtered.txt'  # "The input training data file (a text file)."
-    eval_data_file: 'data/unsupervised_test_filtered_300.txt'   # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    eval_data_file: 'data/unsupervised_test_filtered.txt'   # "Data file unseen by the model (only to calculate perplexity of each checkpoint while training) to do evaluations (a text file)."
     output_dir: 'outputs/'  # "The output directory where the model predictions and checkpoints will be written."
     output_dir_to_eval: None  # "The output directory where the model predictions checkpoints to eval are."
     no_cuda: False  # "Avoid using CUDA when available"
