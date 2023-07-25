@@ -1,9 +1,9 @@
 main:
 
     # Necessary User-defined variables
-    evaluate: False  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set."
+    evaluate: False  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set or simply generate recipes to print in console."
     model_type: 'gpt2'  # ['gpt2', 'opt', 'qlora'] "Model type selected in the list"
-    sample_file_path: ''
+    sample_file_path: ''  # "If we want to specify a relative path of a file containing the ingredients to generate recipes from."
 
     # Optional user-defined variables
     prompt: 'ham, egg, butter, milk, leek, sour creme, bread, sausage'  # "The prompt to test a single recipe generation."
