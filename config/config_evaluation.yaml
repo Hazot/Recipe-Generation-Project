@@ -1,5 +1,7 @@
 main:
-
+    #TODO: add the possibility to evaluate a model with a specific checkpoint
+    #TODO: make this for run_evaluation.py and its pipeline
+    
     # Necessary User-defined variables
     evaluate: True  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set or simply generate recipes to print in console."
     model_type: 'gpt2'  # ['gpt2', 'opt', 'qlora'] "Model type selected in the list"

@@ -194,11 +194,30 @@ def main():
 
     results['cosine_avg'] = cosine_avg
 
+    
     ###########################################################
-    ### P5: Input ingredients coverage in instructions evaluation
+    ### P2: Language Check evaluation
     ###########################################################
-    sample_coverage = evaluate_recipes_input_ingredients_coverage_in_instructions(data['sample'])
-
+    #TODO: clean up the code
+    
+    ###########################################################
+    ### P3: Readability evaluation
+    ###########################################################
+    #TODO: clean up the code
+    
+    ###########################################################
+    ### P4: Translation metrics evaluation
+    ###########################################################
+    #TODO: clean up the code
+    
+    ###########################################################
+    ### P5: Ingredients evaluations
+    ###########################################################
+    
+    results['input_ingr_to_instr_avg'] = evaluate_recipes_input_ingredients_coverage_in_instructions(data['finetuned'])
+    results['input_ingr_to_list_ingr_avg'] = evaluate_recipes_input_ingredients_coverage_in_listed_ingredients(data['finetuned'])
+    results['dupplicated_ingr_avg'] = evaluate_duplicated_input_ingredients(data['finetuned'])
+    
 
 if __name__ == "__main__":
     main()
