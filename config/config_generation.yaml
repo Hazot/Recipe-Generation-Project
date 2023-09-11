@@ -2,7 +2,7 @@ main:
 
     # Necessary User-defined variables
     #TODO: remove temporary evaluation things and move to config_evaluation.yaml
-    evaluate: Fals  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set or simply generate recipes to print in console."
+    evaluate: False  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set or simply generate recipes to print in console."
     model_type: 'gpt2'  # ['gpt2', 'opt', 'qlora'] "Model type selected in the list"
     sample_file_path: ''  # "If we want to specify a relative path of a file containing the ingredients to generate recipes from."
 
@@ -44,8 +44,7 @@ hydra:
 
 # Default parameters for GPT2
 gpt2:
-#    tokenizer_name: '/checkpoints/gpt2/checkpoint-gpt2/'
-    tokenizer_name: 'gpt2'
+    tokenizer_name: '/checkpoints/gpt2/checkpoint-gpt2/'
     model_name_or_path: '/checkpoints/gpt2/checkpoint-gpt2/'
     do_lower_case: False
     truncation_side: 'right'

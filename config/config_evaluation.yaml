@@ -45,8 +45,7 @@ hydra:
 
 # Default parameters for GPT2
 gpt2:
-#    tokenizer_name: '/checkpoints/gpt2/checkpoint-gpt2/'
-    tokenizer_name: 'gpt2'
+   tokenizer_name: '/checkpoints/gpt2/checkpoint-gpt2/'
     model_name_or_path: '/checkpoints/gpt2/checkpoint-gpt2/'
     do_lower_case: False
     truncation_side: 'right'
