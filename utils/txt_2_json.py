@@ -20,14 +20,14 @@ def txt_2_json(params: DictConfig, logger):
         raise Exception("unsupervised_test_filtered.txt not found. Please put this file in the '/data/' folder")
 
     # Check if the json files already exist and remove them, we recreate them since it is not expensive to do so
-    if os.path.exists(local_path + f"/qlora_recipes_{nb_train_recipes}.json"):
-        os.remove(local_path + f"/qlora_recipes_{nb_train_recipes}.json")
-    if os.path.exists(local_path + f"/qlora_recipes_test_{nb_test_recipes}.json"):
-        os.remove(local_path + f"/qlora_recipes_test_{nb_test_recipes}.json")
+    if os.path.exists(local_path + f"/recipes_{nb_train_recipes}.json"):
+        os.remove(local_path + f"/recipes_{nb_train_recipes}.json")
+    if os.path.exists(local_path + f"/recipes_test_{nb_test_recipes}.json"):
+        os.remove(local_path + f"/recipes_test_{nb_test_recipes}.json")
 
     logger.info('Creating json files...')
-    create_json(logger, nb_train_recipes, local_path + "/data/unsupervised_train_filtered.txt", 'qlora_recipes')
-    create_json(logger, nb_test_recipes, local_path + "/data/unsupervised_test_filtered.txt", 'qlora_recipes_test')
+    create_json(logger, nb_train_recipes, local_path + "/data/unsupervised_train_filtered.txt", 'recipes')
+    create_json(logger, nb_test_recipes, local_path + "/data/unsupervised_test_filtered.txt", 'recipes_test')
 
 def create_json(logger, nb_recipes, input_filename, output_filename):
     fields = ["instruction", "input", "output"]
@@ -38,7 +38,7 @@ def create_json(logger, nb_recipes, input_filename, output_filename):
         for recipe in tqdm(f, desc='Creating json file:', disable=False, position=0, leave=True):
 
             # put the number of recipes you want to extract here, they are already shuffled in the txt file.
-            if count > nb_recipes:
+            if count >= nb_recipes:
                 break
 
             if '<INPUT_START>' in recipe and '<INPUT_END>' in recipe:
