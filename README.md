@@ -26,10 +26,12 @@ pip install -U git+https://github.com/huggingface/peft.git
 pip install -U git+https://github.com/huggingface/accelerate.git
 ```
 
+We also need to download the full dataset that you will find here: [Full dataset](/guides/content/editing-an-existing-page). The code will preprocess this data during the finetuning phase.
+
 
 ## Finetuning a model
 
-The default config `/config/config_finetuning.yaml` will first create the necessary datasets (requires 10GB of space and 45 minutes) for the GPT2 (or specified) model. Afterwards, this will start the fine-tuning of the specified model in the config (gpt2, opt, llama, lora).
+The default config `/config/config_finetuning.yaml` will first create the necessary datasets (requires 10GB of space and 45 minutes) for the GPT2 (or specified) model. Afterwards, this will start the fine-tuning of the specified model in the config (gpt2, opt, llama).
 
 ```
 python main_finetuning.py
