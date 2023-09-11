@@ -1,4 +1,5 @@
 import os
+import glob
 import re
 import hydra
 from omegaconf import DictConfig
@@ -159,10 +160,11 @@ def evaluate_cosine_similarity(sample_tensor, finetuned_tensor):
     return avg
 
 
-def main():
-    local_path = os.path.normpath(os.getcwd() + os.sep + os.pardir)
-    sample_path = local_path + "/results/2023-07-25_16-14-49/sample_gpt2.txt"
-    finetuned_path = local_path + "/results/2023-07-25_16-14-49/finetuned_gpt2.txt"
+def evaluate():
+    local_path = os.path.normpath(os.getcwd() + os.sep)
+    
+    sample_path = local_path + '/' + glob.glob('**/*sample_gpt2.txt', recursive=True)[0]
+    finetuned_path = local_path + '/' + glob.glob('**/*finetuned_gpt2.txt', recursive=True)[0]
 
     data_dir = "data"
 
@@ -192,8 +194,7 @@ def main():
 
     cosine_avg = evaluate_cosine_similarity(sample_tensor, finetuned_tensor)
 
-    results['cosine_avg'] = cosine_avg
-
+    results['cosine_avg'] = cosine_avg[0][0]
     
     ###########################################################
     ### P2: Language Check evaluation
@@ -214,10 +215,11 @@ def main():
     ### P5: Ingredients evaluations
     ###########################################################
     
-    results['input_ingr_to_instr_avg'] = evaluate_recipes_input_ingredients_coverage_in_instructions(data['finetuned'])
-    results['input_ingr_to_list_ingr_avg'] = evaluate_recipes_input_ingredients_coverage_in_listed_ingredients(data['finetuned'])
-    results['dupplicated_ingr_avg'] = evaluate_duplicated_input_ingredients(data['finetuned'])
-    
+    results['input_ingr_to_instr_avg'] = np.mean(evaluate_recipes_input_ingredients_coverage_in_instructions(data['finetuned']))
+    results['input_ingr_to_list_ingr_avg'] = np.mean(evaluate_recipes_input_ingredients_coverage_in_listed_ingredients(data['finetuned']))
+    results['dupplicated_ingr_avg'] = np.mean(evaluate_duplicated_input_ingredients(data['finetuned']))
+    return results    
 
 if __name__ == "__main__":
-    main()
+    results = evaluate()
+    print(results)

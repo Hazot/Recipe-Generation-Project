@@ -3,6 +3,7 @@ from omegaconf import DictConfig
 import logging
 
 from eval.prepare_evaluation import generate_finetuned_recipes
+from eval.evaluation import evaluate
 from generation.generation import generate_recipes
 
 
@@ -27,17 +28,13 @@ def main(params: DictConfig):
     # Set the absolute path to the model, if the model has already been trained
     params['main']['model_name_or_path'] = hydra.utils.get_original_cwd() + params['main']['model_name_or_path']
 
-    if not params['main']['evaluate']:
-        logger.info("Generating recipes to print.")
-        logger.info(f"Generating recipes with the following model: {params['main']['model_type']}")
-        logger.info(f"The generation will be done with the following parameters: {params['main']}")
-        generate_recipes(params=params, logger=logger)
-    else:
-        logger.info("No generation will be done, the evaluate flag is set to false.")
-        generate_finetuned_recipes(params=params, logger=logger)
-        logger.info("Finetuned recipes for evaluation have been successfully generated!")
+    logger.info("No generation will be done, the evaluate flag is set to false.")
+    generate_finetuned_recipes(params=params, logger=logger)
+    logger.info("Finetuned recipes for evaluation have been successfully generated!")
 
-    logger.info("Generation successfully finished!")
+    results = evaluate()
+    
+    logger.info("Evaluation successfully finished!")
 
 
 if __name__ == "__main__":
