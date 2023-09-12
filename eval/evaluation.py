@@ -2,13 +2,19 @@ import os
 import glob
 import re
 import hydra
-from omegaconf import DictConfig
+from tqdm import tqdm
 import logging
 import numpy as np
 import transformers
+import torch
+from omegaconf import DictConfig
+from hydra.utils import get_original_cwd
 from sklearn.metrics.pairwise import cosine_similarity
+
 from transformers import GPT2Tokenizer, AutoTokenizer
-from tqdm import tqdm
+
+from utils.model_utils import create_tokenizer, create_model
+
 
 
 def print_raw_recipe(full_raw_recipe):
@@ -160,13 +166,18 @@ def evaluate_cosine_similarity(sample_tensor, finetuned_tensor):
     return avg
 
 
-def evaluate():
-    local_path = os.path.normpath(os.getcwd() + os.sep)
-    
-    sample_path = local_path + '/' + glob.glob('**/*sample_gpt2.txt', recursive=True)[0]
-    finetuned_path = local_path + '/' + glob.glob('**/*finetuned_gpt2.txt', recursive=True)[0]
+def set_seed(params):
+    np.random.seed(params['main']['seed'])
+    torch.manual_seed(params['main']['seed'])
+    if params['main']['n_gpu'] > 0:
+        torch.cuda.manual_seed_all(params['main']['seed'])
 
-    data_dir = "data"
+
+def evaluate(params: DictConfig, logger: logging.Logger, model=None, tokenizer=None):
+    local_path = os.path.normpath(get_original_cwd())
+    
+    sample_path = local_path + f'/results/sample_{params["main"]["model_type"]}.txt'
+    finetuned_path = local_path + f'/results/finetuned_{params["main"]["model_type"]}.txt'
 
     data = {
         "sample": [],
@@ -182,17 +193,44 @@ def evaluate():
         content = f.readlines()
         data["finetuned"] = [content[i * 2].replace('\n', '') for i in range(len(content) // 2)]
 
-    # Results dict initialization
+    # Initializations
+    if not model or not tokenizer:
+        device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")
+        params['main']['n_gpu'] = torch.cuda.device_count() if params['main']['n_gpu'] == -1 else params['main'][
+            'n_gpu']
+
+        logger.info("device: {} | n_gpu: {}".format(device, params['main']['n_gpu']))
+
+        set_seed(params=params)
+
+        # Update checkpoint path for current local directory
+        tokenizer, _ = create_tokenizer(params=params, model_name_or_path=params['main']['model_name_or_path'])
+        model = create_model(params=params, model_name_or_path=params['main']['model_name_or_path'])
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() and not params['main']['no_cuda'] else "cpu")
+        params['main']['n_gpu'] = torch.cuda.device_count() if params['main']['n_gpu'] == -1 else params['main'][
+            'n_gpu']
+
+    model.to(device)
+    model.eval()
+
+    if params['main']['length'] < 0 and model.config.max_position_embeddings > 0:
+        params['main']['length'] = model.config.max_position_embeddings
+    elif 0 < model.config.max_position_embeddings < params['main']['length']:
+        params['main']['length'] = model.config.max_position_embeddings  # No generation bigger than model size
+    elif params['main']['length'] < 0:
+        params['main']['length'] = int(10000)  # Hardcoded max length to avoid infinite loop
+
     results = {}
 
     ###########################################################
     ### P1: Cosine similarity evaluation
     ###########################################################
-    tokenizer = AutoTokenizer.from_pretrained(local_path + '/checkpoints/gpt2/checkpoint-gpt2/')
     sample_tensor = [tokenizer.encode(recipe) for recipe in data['sample']]
     finetuned_tensor = [tokenizer.encode(recipe) for recipe in data['finetuned']]
 
     cosine_avg = evaluate_cosine_similarity(sample_tensor, finetuned_tensor)
+    print(cosine_avg, type(cosine_avg))
 
     results['cosine_avg'] = cosine_avg[0][0]
     
@@ -218,8 +256,4 @@ def evaluate():
     results['input_ingr_to_instr_avg'] = np.mean(evaluate_recipes_input_ingredients_coverage_in_instructions(data['finetuned']))
     results['input_ingr_to_list_ingr_avg'] = np.mean(evaluate_recipes_input_ingredients_coverage_in_listed_ingredients(data['finetuned']))
     results['dupplicated_ingr_avg'] = np.mean(evaluate_duplicated_input_ingredients(data['finetuned']))
-    return results    
-
-if __name__ == "__main__":
-    results = evaluate()
-    print(results)
+    return results

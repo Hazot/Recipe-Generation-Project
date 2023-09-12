@@ -1,3 +1,4 @@
+import os
 import hydra
 from omegaconf import DictConfig
 import logging
@@ -29,12 +30,12 @@ def main(params: DictConfig):
     params['main']['model_name_or_path'] = hydra.utils.get_original_cwd() + params['main']['model_name_or_path']
 
     logger.info("No generation will be done, the evaluate flag is set to false.")
-    if not glob.glob('**/*sample_gpt2.txt', recursive=True) and :
     generate_finetuned_recipes(params=params, logger=logger)
     logger.info("Finetuned recipes for evaluation have been successfully generated!")
 
-    results = evaluate()
-    
+    results = evaluate(params=params, logger=logger)
+    print(results)
+
     logger.info("Evaluation successfully finished!")
 
 
