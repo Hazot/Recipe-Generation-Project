@@ -39,14 +39,26 @@ def get_ingredients(recipe):
 
 
 def generate_finetuned_recipes(params: DictConfig, logger: logging.Logger):
+    # Get the local path
+    local_path = os.path.normpath(get_original_cwd())
+
+    # Get the path to the dataset in HDF5 format
+    test_sample_path = local_path + f"/results/sample_{params['main']['model_type']}.txt"
+    print(test_sample_path)
+    return
+    # Check if the dataset is already in HDF5 format
+    if os.path.exists(test_sample_path):
+        logger.info('Sample tests for evaluation are already generated. Skipping finetuned generation')
+        return
+
     logger.info(f"Generating {NUM_RECIPES_PER_INGREDIENT_LIST * NUM_TEST_SAMPLE} recipes for evaluation.")
     params['main']['num_promps'] = NUM_RECIPES_PER_INGREDIENT_LIST
 
     # Initializations of the folders and paths
-    folder_name_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    # folder_name_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     local_path = get_original_cwd() + "/"
     eval_file_path = local_path + params['main']['eval_data_file']
-    finetuned_folder_path = local_path + f"results/{folder_name_time}/"
+    finetuned_folder_path = local_path + f"results/"
 
     # File path to use for the sample ingredient sets
     sample_test_file_path = finetuned_folder_path + f"sample_{params['main']['model_type']}.txt"

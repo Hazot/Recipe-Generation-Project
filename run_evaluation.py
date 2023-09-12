@@ -1,3 +1,4 @@
+import os
 import hydra
 from omegaconf import DictConfig
 import logging
@@ -32,8 +33,9 @@ def main(params: DictConfig):
     generate_finetuned_recipes(params=params, logger=logger)
     logger.info("Finetuned recipes for evaluation have been successfully generated!")
 
-    results = evaluate()
-    
+    results = evaluate(params=params, logger=logger)
+    print(results)
+
     logger.info("Evaluation successfully finished!")
 
 

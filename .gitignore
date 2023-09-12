@@ -1,3 +1,20 @@
+### Start of custom settings
+checkpoints/*
+data/*
+outputs/*
+results/*
+wandb/*
+
+# Temp
+eval/ingredient_list.txt
+eval/results.json
+
+
+
+
+
+### End of custom settings
+
 # Created by https://www.toptal.com/developers/gitignore/api/pycharm+all,jupyternotebooks,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=pycharm+all,jupyternotebooks,python
 
@@ -273,15 +290,3 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm+all,jupyternotebooks,python
-
-# Start of user-based settings
-data/
-outputs/*
-gpt2/
-opt/
-qlora/
-results/
-wandb/
-eval/ingredient_list.txt
-eval/ingredient_list.txt
-eval/results.json
