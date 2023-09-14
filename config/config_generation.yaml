@@ -39,7 +39,7 @@ main:
 # Hydra
 hydra:
     job:
-        chdir: True  # To make hydra work like it used to
+        chdir: True  # To make hydra work like you used to know
 
 # Default parameters for GPT2
 gpt2:
