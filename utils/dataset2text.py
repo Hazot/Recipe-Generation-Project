@@ -31,6 +31,7 @@ def df_to_plaintext_file(input_df, output_file, logger):
                 continue
         logger.info('last index: ' + str(index))
 
+
 def filter_txt(input_path, output_path, logger):
     logger.info("Filtering "+ input_path + " to " + output_path)
     count = 0
@@ -43,8 +44,8 @@ def filter_txt(input_path, output_path, logger):
                 if re.search(pattern1, row) and re.search(pattern2, row):
                     ingr_start_index = row.find("<INPUT_START>")
                     ingr_end_index = row.find("<INPUT_END>")
-                    if ingr_end_index - ingr_start_index > 10 and ingr_end_index - ingr_start_index < 300:
-                        f_out.write("{}\n".format(row))
+                    if 10 < ingr_end_index - ingr_start_index < 300:
+                        f_out.write("{}".format(row))
                         continue
                 else:
                     d = {'index': i,
@@ -57,8 +58,12 @@ def filter_txt(input_path, output_path, logger):
 def dataset2text(params, logger):
     local_path = os.path.normpath(get_original_cwd())
 
-    if 'unsupervised_train_filtered.txt' in \
-            os.listdir(local_path + '/data/') and 'unsupervised_test_filtered.txt' \
+    file_names = {
+        'train': params['main']['train_data_file'][5:],
+        'test': params['main']['eval_data_file'][5:]
+    }
+    if file_names['train'] in \
+            os.listdir(local_path + '/data/') and file_names['test'] \
             in os.listdir(local_path + '/data/'):
         logger.info('Dataset already in txt format. Skipping conversion.')
         return
@@ -71,17 +76,42 @@ def dataset2text(params, logger):
     df = df.dropna()
     logger.info('full_dataset df.shape: ' + str(df.shape))
 
-    remove1 = df.loc[df.title.map(lambda x: len(x) < 5)]  # remove recipe with titles with less than 5 characters
-    remove2 = df.loc[df.ingredients.map(lambda x: len(eval(x)) < 3)]  # remove recipe with less than 3 ingredients
-    remove3 = df.loc[df.directions.map(lambda x: len(eval(x)) < 2 or len(x) < 30)]  # remove recipe with less than 2 directions or less than 30 characters
-    remove4 = df.loc[df.directions.map(lambda x: re.search('(step|mix all)', ''.join(x), re.IGNORECASE) is not None)]  # remove recipe with directions that contain 'step' or 'mix all'
+    remove1 = df.loc[
+        df.title.map(lambda x: len(x) < 5)
+    ]  # remove recipe with titles with less than 5 characters
+    remove2 = df.loc[
+        df.ingredients.map(lambda x: len(eval(x)) < 3)
+    ]  # remove recipe with less than 3 ingredients
+    remove3 = df.loc[
+        df.directions.map(lambda x: len(eval(x)) < 2 or len(x) < 30)
+    ]  # remove recipe with less than 2 directions or fewer than 30 characters
+    remove4 = df.loc[
+        df.directions.map(lambda x: re.search('(step|mix all)', ''.join(x), re.IGNORECASE) is not None)
+    ]  # remove recipe with directions that contain 'step' or 'mix all'
 
     logger.info('len of removed lines: ' + str(len(remove3)+len(remove2)+len(remove1)+len(remove4)))
 
-    df.drop(df[df.title.map(lambda x: len(x) < 5)].index, inplace=True) # remove recipe with titles with less than 5 characters
-    df.drop(df[df.ingredients.map(lambda x: len(eval(x)) < 3)].index, inplace=True) # remove recipe with less than 3 ingredients
-    df.drop(df[df.directions.map(lambda x: len(eval(x)) < 2 or len(x) < 30)].index, inplace=True) # remove recipe with less than 2 directions or less than 30 characters
-    df.drop(df[df.directions.map(lambda x: re.search('(step|mix all)', ''.join(x), re.IGNORECASE) is not None)].index, inplace=True) # remove recipe with directions that contain 'step' or 'mix all'
+    df.drop(
+        df[df.title.map(
+            lambda x: len(x) < 5)].index,
+        inplace=True
+    )  # remove recipe with titles with less than 5
+    # characters
+    df.drop(
+        df[df.ingredients.map(
+            lambda x: len(eval(x)) < 3)].index,
+        inplace=True
+    )  # remove recipe with less than 3 ingredients
+    df.drop(
+        df[df.directions.map(
+            lambda x: len(eval(x)) < 2 or len(x) < 30)].index,
+        inplace=True
+    )  # remove recipe with less than 2 directions or fewer than 30 characters
+    df.drop(
+        df[df.directions.map(
+            lambda x: re.search('(step|mix all)', ''.join(x), re.IGNORECASE) is not None)].index,
+        inplace=True
+    )  # remove recipe with directions that contain 'step' or 'mix all'
 
     logger.info('dataset df.shape: ' + str(df.shape))
 
@@ -125,5 +155,6 @@ def dataset2text(params, logger):
                local_path + '/data/unsupervised_test_filtered.txt',
                logger)
 
+    # remove the file after a successful filtering
     os.remove(local_path + '/data/unsupervised_train.txt')
     os.remove(local_path + '/data/unsupervised_test.txt')

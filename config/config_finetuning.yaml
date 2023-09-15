@@ -1,7 +1,7 @@
 main:
 
     # User-defined variables
-    model_type: 'gpt2'  # ['gpt2', 'opt', 'llama', 'qlora'] "Model type selected in the list"
+    model_type: 'opt'  # ['gpt2', 'opt', 'llama', 'qlora'] "Model type selected in the list"
     json: False  # "Whether to use json for the training dataset."
     json_nb_train_recipes: 100000  # "Number of recipes to use for the training dataset."
     per_gpu_train_batch_size: 2  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
@@ -9,7 +9,7 @@ main:
     gradient_accumulation_steps: 1  # "Number of updates steps to accumulate before performing a backward/update pass."
     do_train: True  # "Whether to run training."
     do_eval: True  # "Whether to run eval on the dev set."
-    create_valid: False  # "Whether to create a validation set."
+    create_valid: False  # "(TODO: rename to dev + Not supported yet) Whether to create a validation set."
     config_name: ''  # "Optional pretrained config name or path if not the same as model_name_or_path"
     num_workers: 0  # "Number of workers to use for the data loader."
 
@@ -25,8 +25,8 @@ main:
     # Hardware and logging pre-defined variables
     train_data_file: 'data/unsupervised_train_filtered.txt'  # "The input training data file (a text file)."
     eval_data_file: 'data/unsupervised_test_filtered.txt'  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
-    output_dir: '/'  # "The output directory where the model predictions and checkpoints will be written."
-    output_dir_to_eval: '/'  # "The output directory where the model predictions checkpoints to eval are."
+    output_dir: 'outputs/'  # "The output directory where the model predictions and checkpoints will be written."
+    output_dir_to_eval: 'outputs/'  # "The output directory where the model predictions checkpoints to eval are."
     no_cuda: False  # "Avoid using CUDA when available"
     n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
     cache_dir: ''  # "Optional directory to store the pre-trained models downloaded from s3 (instead of the default one)"
@@ -34,7 +34,7 @@ main:
     train_batch_size: -1  # Overwritten in the code (depends on the nb of GPUs)
     eval_batch_size: -1  # Overwritten in the code (depends on the nb of GPUs)
     logging_steps: 1  # "Log every X updates steps."
-    save_steps: 50000  # "Save checkpoint every X updates steps. (default=10000, which is way too much data)"
+    save_steps: 40000  # "Save checkpoint every X updates steps (0.5GB each save). (default=10000, which is way too much data)"
     eval_all_checkpoints: True  # "Evaluate all checkpoints starting with the same prefix as model_name_or_path ending and ending with step number"
     overwrite_output_dir: True  # "Overwrite the content of the output directory"
     overwrite_cache: False  # "Overwrite the cached training and evaluation sets"
@@ -62,8 +62,8 @@ gpt2:
 
 # Default parameters for OPT
 opt:
-    tokenizer_name: 'facebook/opt-125m'
-    model_name_or_path: 'facebook/opt-125m'
+    tokenizer_name: 'facebook/opt-350m'
+    model_name_or_path: 'facebook/opt-350m'
     do_lower_case: False
     truncation_side: 'right'
 

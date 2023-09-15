@@ -25,6 +25,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 from utils.model_utils import create_model, create_tokenizer
 
+
 def tardir(path, tar_name):
     with tarfile.open(tar_name, "w") as tar_handle:
         for root, dirs, files in os.walk(path):
@@ -51,7 +52,6 @@ class TextDataset(Dataset):
     def __init__(self, model_type, file_path='train'):
         cached_features_file = get_original_cwd() + f"/data/unsupervised_{model_type}.h5"
         print('Project Folder', get_original_cwd())
-
         print("Loading features from cached file %s", cached_features_file)
         with h5py.File(cached_features_file, 'r') as f:
             if file_path == 'test':
@@ -109,6 +109,7 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None, logge
     logger.info("***** Running training *****")
     logger.info(f"  Num examples = {len(train_dataset)}")
     logger.info(f"  Num of recipes divided into blocks of tokens of size={params['main']['block_size']}")
+    logger.info('Number of blocks of tokens = %s', str(len(train_dataset.examples)))
     logger.info(f"  Num Epochs = {params['main']['num_train_epochs']}")
     logger.info(f"  Instantaneous batch size per GPU = {params['main']['per_gpu_train_batch_size']}")
     logger.info(
@@ -322,7 +323,6 @@ def trainer_finetuning(params: DictConfig, logger: logging.Logger):
     if params['main']['do_train']:
         train_dataset = load_and_cache_examples(params, evaluate=False)
 
-        logger.info('len(train_dataset.examples) =', str(len(train_dataset.examples)))
         global_step, tr_loss = train(params, train_dataset, model, tokenizer, device, tb_writer, logger)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
@@ -352,7 +352,6 @@ def trainer_finetuning(params: DictConfig, logger: logging.Logger):
             ''' model.hf_device_map == code to check the mapping of the model to the hardware '''
 
     # Evaluation
-    # if params['main''']['do_train']:
     results = {}
     if params['main']['do_eval']:
         checkpoints = [output_dir]
@@ -370,9 +369,9 @@ def trainer_finetuning(params: DictConfig, logger: logging.Logger):
             result = evaluate(params, model, tokenizer, device, prefix=global_step, tb_writer=tb_writer, logger=logger)
             result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
             results.update(result)
-    # elif params['main''']['output_dir_to_eval']:
-    #     raise ValueError("Cannot do evaluation without an evaluation data file. Either supply a file to "
-    #                      "--eval_data_file or remove the --do_eval argument.")
+    elif params['main']['output_dir_to_eval']:
+        raise ValueError("Cannot do evaluation without an evaluation data file. Either supply a file to "
+                         "['main''']['output_dir_to_eval'] or set the ['main''']['do_eval'] to False.")
 
     tb_writer.close()
 

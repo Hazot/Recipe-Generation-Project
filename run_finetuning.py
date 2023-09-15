@@ -34,25 +34,35 @@ def main(params: DictConfig) -> None:
         raise Exception("Unknown model type")
 
     # Check for existing dataset and/or create the dataset
-    logger.info('Creating txt files...')
-    dataset2text(params=params, logger=logger)  # takes 5 minutes
+    try:
+        logger.info('Creating txt files...')
+        dataset2text(params=params, logger=logger)  # takes 5 minutes
 
-    if not params['main']['json']:
-        # Check for existing h5 file and/or create the h5 file
-        logger.info('Checking for existing h5 file...')
-        tokenize(params=params, logger=logger)  # takes 45 minutes
-    else:
-        # Create the json train and test files
-        logger.info('Creating json file...')
-        txt_2_json(params=params, logger=logger)  # takes 45 minutes
+        if not params['main']['json']:
+            # Check for existing h5 file and/or create the h5 file
+            logger.info('Checking for existing h5 file...')
+            tokenize(params=params, logger=logger)  # takes 45 minutes on (i7 7700k)
+        else:
+            # Create the json train and test files
+            logger.info('Creating json file...')
+            txt_2_json(params=params, logger=logger)  # takes 45 minutes on (i7 7700k)
+    except Exception as e:
+        logger.info("Dataset creation has halted because of an exception.")
+        logger.exception(e)
 
     # Train the model as fine-tuning
-    if not params['main']['json']:
-        trainer_finetuning(params=params, logger=logger)
-    else:
-        trainer_lora(params=params)
+    try:
+        if not params['main']['json']:
+            trainer_finetuning(params=params, logger=logger)
+        else:
+            trainer_lora(params=params)
+        logger.info("Training successfully finished!")
+    except Exception as e:
+        print(e)
+        logger.info("Training has halted because of an exception.")
+        logger.exception(e)
+    logger.info("End of file.")
 
-    logger.info("Training successfully finished!")
 
 if __name__ == "__main__":
     main()

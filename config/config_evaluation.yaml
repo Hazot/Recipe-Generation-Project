@@ -18,7 +18,7 @@ main:
     # Hardware and logging pre-defined variables
     train_data_file: 'data/unsupervised_train_filtered.txt'  # "The input training data file (a text file)."
     eval_data_file: 'data/unsupervised_test_filtered.txt'   # "Data file unseen by the model (only to calculate perplexity of each checkpoint while training) to do evaluations (a text file)."
-    output_dir: 'outputs/'  # "The output directory where the model predictions and checkpoints will be written."
+    output_dir: ''  # "The output directory where the model predictions and checkpoints will be written."
     output_dir_to_eval: None  # "The output directory where the model predictions checkpoints to eval are."
     no_cuda: False  # "Avoid using CUDA when available"
     n_gpu: 1  # Overwritten in the code (depends on the nb of GPUs)
