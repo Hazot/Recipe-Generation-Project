@@ -48,9 +48,7 @@ def tokenize(params: DictConfig, logger):
     # else:
     #     datasets = ["test", "train"]
     datasets = ["test", "train"]
-    print('-'*80)
-    print('file_names[datasets[0]]', file_names[datasets[0]])
-    print('-' * 80)
+
     # Create a dataset for each split of the data
     for dataset_type in datasets:
         out_np = []

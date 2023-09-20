@@ -23,8 +23,8 @@ main:
     warmup_steps: 0  # "Linear warmup over warmup_steps."
 
     # Hardware and logging pre-defined variables
-    train_data_file: 'data/unsupervised_train_filtered_15803.txt'  # "The input training data file (a text file)."
-    eval_data_file: 'data/unsupervised_test_filtered_833.txt'  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    train_data_file: 'data/unsupervised_train_filtered.txt'  # "The input training data file (a text file)."
+    eval_data_file: 'data/unsupervised_test_filtered.txt'  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
     output_dir: 'outputs/'  # "The output directory where the model predictions and checkpoints will be written."
     output_dir_to_eval: 'outputs/'  # "The output directory where the model predictions checkpoints to eval are."
     no_cuda: False  # "Avoid using CUDA when available"
