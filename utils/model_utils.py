@@ -14,7 +14,9 @@ def create_model(params: DictConfig, model_name_or_path):
 
     if params['main']['model_type'] == 'gpt2':
         model = GPT2LMHeadModel.from_pretrained(model_name_or_path)
-    elif params['main']['model_type'] == 'opt':
+    elif params['main']['model_type'] == 'opt-125m':
+        model = AutoModelForCausalLM.from_pretrained(model_name_or_path)
+    elif params['main']['model_type'] == 'opt-350m':
         model = AutoModelForCausalLM.from_pretrained(model_name_or_path)
     elif params['main']['model_type'] == 'qlora':
 
@@ -45,7 +47,15 @@ def create_tokenizer(params: DictConfig, model_name_or_path):
         )
         tokenizer.padding_side = "right"  # Left: Allows batched inference, we put right for this task.
         max_token_len = tokenizer.max_model_input_sizes["gpt2"]
-    elif params['main']['model_type'] == 'opt':
+    elif params['main']['model_type'] == 'opt-125m':
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name_or_path,
+            use_fast=False,
+            do_lower_case=params['main']['do_lower_case'],
+            truncation_side=params['main']['truncation_side']
+        )
+        max_token_len = tokenizer.max_model_input_sizes["gpt2"]
+    elif params['main']['model_type'] == 'opt-350m':
         tokenizer = AutoTokenizer.from_pretrained(
             model_name_or_path,
             use_fast=False,

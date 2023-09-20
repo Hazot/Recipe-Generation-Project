@@ -1,7 +1,7 @@
 main:
 
     # User-defined variables
-    model_type: 'opt'  # ['gpt2', 'opt', 'llama', 'qlora'] "Model type selected in the list"
+    model_type: 'opt-125m'  # ['gpt2', 'opt-125m', 'opt-350m', 'llama', 'qlora'] "Model type selected in the list"
     json: False  # "Whether to use json for the training dataset."
     json_nb_train_recipes: 100000  # "Number of recipes to use for the training dataset."
     per_gpu_train_batch_size: 2  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"
@@ -23,8 +23,8 @@ main:
     warmup_steps: 0  # "Linear warmup over warmup_steps."
 
     # Hardware and logging pre-defined variables
-    train_data_file: 'data/unsupervised_train_filtered.txt'  # "The input training data file (a text file)."
-    eval_data_file: 'data/unsupervised_test_filtered.txt'  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+    train_data_file: 'data/unsupervised_train_filtered_15803.txt'  # "The input training data file (a text file)."
+    eval_data_file: 'data/unsupervised_test_filtered_833.txt'  # "An optional input evaluation data file to evaluate the perplexity on (a text file)."
     output_dir: 'outputs/'  # "The output directory where the model predictions and checkpoints will be written."
     output_dir_to_eval: 'outputs/'  # "The output directory where the model predictions checkpoints to eval are."
     no_cuda: False  # "Avoid using CUDA when available"
@@ -60,8 +60,15 @@ gpt2:
     do_lower_case: False
     truncation_side: 'right'
 
-# Default parameters for OPT
-opt:
+# Default parameters for OPT-125m
+opt-125m:
+    tokenizer_name: 'facebook/opt-125m'
+    model_name_or_path: 'facebook/opt-125m'
+    do_lower_case: False
+    truncation_side: 'right'
+
+# Default parameters for OPT-350m
+opt-350m:
     tokenizer_name: 'facebook/opt-350m'
     model_name_or_path: 'facebook/opt-350m'
     do_lower_case: False

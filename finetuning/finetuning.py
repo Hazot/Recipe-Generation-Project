@@ -113,7 +113,7 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None, logge
     logger.info(f"  Num Epochs = {params['main']['num_train_epochs']}")
     logger.info(f"  Instantaneous batch size per GPU = {params['main']['per_gpu_train_batch_size']}")
     logger.info(
-        f"  Total train batch size = {params['main']['train_batch_size'] * params['main']['gradient_accumulation_steps']}"
+        f"  Total train batch size = {params['main']['train_batch_size']*params['main']['gradient_accumulation_steps']}"
     )
     logger.info(f"  Gradient Accumulation steps = {params['main']['gradient_accumulation_steps']}")
     logger.info(f"  Total optimization steps = {t_total}")
@@ -175,8 +175,8 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None, logge
                     logger.info("Saving model checkpoint to %s", output_dir)
                     if params['main']['evaluate_during_training']:
                         # Only evaluate when single GPU otherwise metrics may not average well
-                        results = evaluate(params, model, tokenizer, device,
-                                           prefix=global_step, tb_writer=tb_writer, logger=logger)
+                        results = evaluate(params, model, device, prefix=global_step,
+                                           tb_writer=tb_writer, logger=logger)
                         for key, value in results.items():
                             tb_writer.add_scalar('eval_{}'.format(key), value, global_step)
                     if params['main']['aws_bucket']:
@@ -199,7 +199,7 @@ def train(params, train_dataset, model, tokenizer, device, tb_writer=None, logge
     return global_step, tr_loss / global_step
 
 
-def evaluate(params, model, tokenizer, device, prefix, tb_writer=None, logger=None):
+def evaluate(params, model, device, prefix, tb_writer=None, logger=None):
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_output_dir = params['main']['output_dir']
 
@@ -305,8 +305,10 @@ def trainer_finetuning(params: DictConfig, logger: logging.Logger):
         tokenizer, max_token_len = create_tokenizer(params, params['main']['tokenizer_name'])
         model = create_model(params, params['main']['model_name_or_path'])
         model.resize_token_embeddings(len(tokenizer))
+        model.to(device)
 
-    if params['main']['model_type'] == 'gpt2' or params['main']['model_type'] == 'opt':
+    if params['main']['model_type'] == 'gpt2' \
+            or params['main']['model_type'] == 'opt-125m' or params['main']['model_type'] == 'opt-350m':
         model.to(device)
         ''' model.hf_device_map == code to check the mapping of the model to the hardware '''
 
@@ -347,7 +349,9 @@ def trainer_finetuning(params: DictConfig, logger: logging.Logger):
         # Load a trained model and vocabulary that you have fine-tuned
         tokenizer, max_token_len = create_tokenizer(params, output_dir)
         model = create_model(params, output_dir)
-        if params['main']['model_type'] == 'gpt2' or params['main']['model_type'] == 'opt':
+        if params['main']['model_type'] == 'gpt2' or \
+                params['main']['model_type'] == 'opt-125m' or \
+                params['main']['model_type'] == 'opt-350m':
             model.to(device)
             ''' model.hf_device_map == code to check the mapping of the model to the hardware '''
 
@@ -363,10 +367,12 @@ def trainer_finetuning(params: DictConfig, logger: logging.Logger):
         for checkpoint in checkpoints:
             global_step = checkpoint.split('-')[-1]
             model = create_model(params, checkpoint)
-            if params['main']['model_type'] == 'gpt2' or params['main']['model_type'] == 'opt':
+            if params['main']['model_type'] == 'gpt2' or \
+                    params['main']['model_type'] == 'opt-125m' or \
+                    params['main']['model_type'] == 'opt-350m':
                 model.to(device)
                 ''' model.hf_device_map == code to check the mapping of the model to the hardware '''
-            result = evaluate(params, model, tokenizer, device, prefix=global_step, tb_writer=tb_writer, logger=logger)
+            result = evaluate(params, model, device, prefix=global_step, tb_writer=tb_writer, logger=logger)
             result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
             results.update(result)
     elif params['main']['output_dir_to_eval']:

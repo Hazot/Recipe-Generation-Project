@@ -19,8 +19,10 @@ def main(params: DictConfig):
     # TODO: do this part of the pipeline (evaluation)
     if params['main']['model_type'] == 'gpt2':
         params['main'].update(params['gpt2'])
-    elif params['main']['model_type'] == 'opt':
-        params['main'].update(params['opt'])
+    elif params['main']['model_type'] == 'opt-125m':
+        params['main'].update(params['opt-125m'])
+    elif params['main']['model_type'] == 'opt-350m':
+        params['main'].update(params['opt-350m'])
     elif params['main']['model_type'] == 'qlora':
         params['main'].update(params['qlora'])
     else:

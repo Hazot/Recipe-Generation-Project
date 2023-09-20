@@ -3,7 +3,7 @@ main:
     #TODO: make this for run_evaluation.py and its pipeline
     # Necessary User-defined variables
     evaluate: True  # "Whether to create 1000 recipes in a file for evaluation purpose with ingredients from test set or simply generate recipes to print in console."
-    model_type: 'gpt2'  # ['gpt2', 'opt', 'qlora'] "Model type selected in the list"
+    model_type: 'gpt2'  # ['gpt2', 'opt-125m', 'opt-350m', 'qlora'] "Model type selected in the list"
     sample_file_path: ''  # "If we want to specify a relative path of a file containing the ingredients to generate recipes from."
 
     # Optional user-defined variables
@@ -49,10 +49,17 @@ gpt2:
     do_lower_case: False
     truncation_side: 'right'
 
-# Default parameters for OPT
-opt:
-    tokenizer_name: 'facebook/opt-125m'
-    model_name_or_path: '/checkpoints/opt/checkpoint-opt/'
+# Default parameters for OPT-125m
+opt-125m:
+    tokenizer_name: '/facebook/opt-125m/'
+    model_name_or_path: '/checkpoints/opt-125m/'
+    do_lower_case: False
+    truncation_side: 'right'
+
+# Default parameters for OPT-350mm
+opt-350m:
+    tokenizer_name: '/facebook/opt-350m/'
+    model_name_or_path: '/checkpoints/opt-350m/'
     do_lower_case: False
     truncation_side: 'right'
 
