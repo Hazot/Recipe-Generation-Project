@@ -31,7 +31,7 @@ We also need to download the full dataset that you will find here: [Full dataset
 
 ## Finetuning a model
 
-The default config `/config/config_finetuning.yaml` will first create the necessary datasets (requires 10GB of space and 45 minutes) for the GPT2 (or specified) model. Afterwards, this will start the fine-tuning of the specified model in the config (gpt2, opt, llama).
+The default config `/config/config_finetuning.yaml` will first create the necessary datasets (requires 10GB of space and 45 minutes on an i7 7700k) for the GPT2 (or specified) model. Afterwards, this will start the fine-tuning of the specified model in the config (gpt2, opt, llama).
 
 ```
 python main_finetuning.py
@@ -39,7 +39,7 @@ python main_finetuning.py
 
 ## Generating recipes
 
-The default config `/config/config_generation.yaml` will create recipes from the GPT2 (or specified) model. You can set the prompt and the number of times you want the generation to repeat for a specific prompt. This is also used to create a fine-tuned dataset of recipes which is used in the evaluation pipeline.
+The default config `/config/config_generation.yaml` will create recipes from the GPT2 (or specified) model. You can set the prompt and the number of times you want the generation to repeat for a specific prompt. This is also used to create a fine-tuned dataset of recipes which is used in the evaluation pipeline. We might add a link to a trained model to download to test the generation without pretraining locally.
 
 ```
 python run_generation.py
