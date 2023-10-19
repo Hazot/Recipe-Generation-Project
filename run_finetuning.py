@@ -1,6 +1,5 @@
 import hydra
 from omegaconf import DictConfig
-import os
 import logging
 
 from finetuning.finetuning import trainer_finetuning
@@ -22,7 +21,7 @@ def main(params: DictConfig) -> None:
                         level=logging.INFO)
 
     logger.info("Training/evaluation parameters %s", params)
-    print("==========================================================================================================")
+    print("="*80)
 
     if params['main']['model_type'] == 'gpt2':
         params['main'].update(params['gpt2'])
