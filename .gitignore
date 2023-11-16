@@ -4,6 +4,7 @@ data/*
 outputs/*
 results/*
 wandb/*
+weights/*
 
 # Temp
 eval/ingredient_list.txt
