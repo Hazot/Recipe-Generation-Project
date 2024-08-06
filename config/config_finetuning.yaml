@@ -55,8 +55,8 @@ hydra:
 
 # Default parameters for GPT2
 gpt2:
-    tokenizer_name: 'gpt2'
-    model_name_or_path: 'gpt2'
+    tokenizer_name: 'openai-community/gpt2'
+    model_name_or_path: 'openai-community/gpt2'
     do_lower_case: False
     truncation_side: 'right'
 
@@ -76,8 +76,8 @@ opt-350m:
 
 # Default parameters for Llama
 llama:
-    tokenizer_name: 'decapoda-research/llama-7b-hf'
-    model_name_or_path: 'decapoda-research/llama-7b-hf'
+    tokenizer_name: 'meta-llama/Meta-Llama-3.1-8B-Instruct'
+    model_name_or_path: 'meta-llama/Meta-Llama-3.1-8B-Instruct'
     do_lower_case: False
     truncation_side: 'right'
 

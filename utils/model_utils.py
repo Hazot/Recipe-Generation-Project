@@ -46,7 +46,7 @@ def create_tokenizer(params: DictConfig, model_name_or_path):
             truncation_side=params['main']['truncation_side']
         )
         tokenizer.padding_side = "right"  # Left: Allows batched inference, we put right for this task.
-        max_token_len = tokenizer.max_model_input_sizes["gpt2"]
+        max_token_len = tokenizer.model_max_length
     elif params['main']['model_type'] == 'opt-125m':
         tokenizer = AutoTokenizer.from_pretrained(
             model_name_or_path,
@@ -54,7 +54,7 @@ def create_tokenizer(params: DictConfig, model_name_or_path):
             do_lower_case=params['main']['do_lower_case'],
             truncation_side=params['main']['truncation_side']
         )
-        max_token_len = tokenizer.max_model_input_sizes["gpt2"]
+        max_token_len = tokenizer.model_max_length
     elif params['main']['model_type'] == 'opt-350m':
         tokenizer = AutoTokenizer.from_pretrained(
             model_name_or_path,
@@ -62,7 +62,7 @@ def create_tokenizer(params: DictConfig, model_name_or_path):
             do_lower_case=params['main']['do_lower_case'],
             truncation_side=params['main']['truncation_side']
         )
-        max_token_len = tokenizer.max_model_input_sizes["gpt2"]
+        max_token_len = tokenizer.model_max_length
     elif params['main']['model_type'] == 'qlora':
         tokenizer = AutoTokenizer.from_pretrained(
             params['main']['base_model'],
