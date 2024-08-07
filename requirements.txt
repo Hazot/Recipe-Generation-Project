@@ -69,7 +69,7 @@ multiprocess==0.70.16
 munkres==1.1.4
 murmurhash==1.0.10
 networkx==3.3
-nltk==3.8.1
+nltk
 numba==0.60.0
 numpy==1.26.4
 omegaconf==2.3.0
