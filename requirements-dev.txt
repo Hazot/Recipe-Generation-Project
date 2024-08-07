@@ -1,4 +1,3 @@
-language-tool-python
 pandas
 textstat
 scipy

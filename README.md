@@ -11,17 +11,28 @@ and want help in generating recipes based on a list of ingredients as an input.
 ## Environment installation
 
 You need Miniconda or Virtualenv to run this project. We recommend using
-Miniconda. We are using Python 3.9.
+Miniconda. We are using Python 3.12.
 
 ### For Anaconda
 
-First install PyTorch 2.0.1 for your
-device: https://pytorch.org/get-started/locally/. We recommend using CUDA 11.7.
+```
+conda create -n recipe_generation python=3.12
+```
+
+First install PyTorch 2.4 for your
+device: https://pytorch.org/get-started/locally/. We recommend using the version
+of cuda your device supports.
 
 Afterwards, you can install the rest of the librairies.
 
+For locked versions of the libraries, you can use the following command:
 ```
-pip install -r requirements.txt
+conda install -c conda-forge --yes --file requirements.txt
+```
+
+To try newer versions of the libraries, you can use the following command:
+```
+conda install -c conda-forge --yes --file requirements-dev.txt
 ```
 
 We also need to download the full dataset that you will find
