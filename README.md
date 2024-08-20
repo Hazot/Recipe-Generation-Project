@@ -13,7 +13,7 @@ and want help in generating recipes based on a list of ingredients as an input.
 You need Miniconda or Virtualenv to run this project. We recommend using
 Miniconda. We are using Python 3.12.
 
-### For Anaconda
+### For Miniconda (or miniforge respectively)
 
 ```
 conda create -n recipe_generation python=3.12
