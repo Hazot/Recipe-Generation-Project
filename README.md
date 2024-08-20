@@ -8,6 +8,14 @@ recipes by exploring and using the latest advancements in natural language
 processing. The project is targeted towards users who are interested in cooking
 and want help in generating recipes based on a list of ingredients as an input.
 
+## TODOs
+- add the sequence length of the tokenized dataset in the h5 file name.
+- finetune llama3.1 8b using some kind of lora.
+- implement some RAG in there
+- remove temporary evaluation things and move to config_evaluation.yaml
+- add the possibility to evaluate a model with a specific checkpoint
+- make this for run_evaluation.py and its pipeline
+
 ## Environment installation
 
 You need Miniconda or Virtualenv to run this project. We recommend using
@@ -26,11 +34,13 @@ of cuda your device supports.
 Afterwards, you can install the rest of the librairies.
 
 For locked versions of the libraries, you can use the following command:
+
 ```
 conda install -c conda-forge --yes --file requirements.txt
 ```
 
 To try newer versions of the libraries, you can use the following command:
+
 ```
 conda install -c conda-forge --yes --file requirements-dev.txt
 ```
@@ -42,10 +52,9 @@ preprocess this data during the finetuning phase. We do not use Git LFS yet.
 ## Finetuning a model
 
 The default config `/config/config_finetuning.yaml` will first create the
-necessary datasets (requires 10GB of space, 45 minutes on an i7 7700k or 15 
-minutes on a ryzen 9 7950X3D)
-for
-the GPT2 (or specified) model. Afterwards, this will start the fine-tuning of
+necessary datasets (requires 10GB of space, 45 minutes on an i7 7700k or 15
+minutes on a ryzen 9 7950X3D) for the GPT2 (or specified) model. Afterwards,
+this will start the fine-tuning of
 the specified model in the config (gpt2, opt, llama).
 
 ```

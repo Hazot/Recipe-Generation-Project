@@ -30,7 +30,7 @@ def main(params: DictConfig):
 
     # Set the absolute path to the model, if the model has already been trained
     params["main"]["model_name_or_path"] = (
-        hydra.utils.get_original_cwd() + params["main"]["model_name_or_path"]
+            hydra.utils.get_original_cwd() + params["main"]["model_name_or_path"]
     )
 
     if not params["main"]["evaluate"]:
