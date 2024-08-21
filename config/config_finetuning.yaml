@@ -1,8 +1,8 @@
 main:
 
   # User-defined variables
-  model_type: 'gpt2'  # ['gpt2', 'opt-125m', 'opt-350m', 'qlora'] "Model type selected in the list"
-  max_sequence_length: 1024  # Set it to an amount that fits in your GPU ram
+  model_type: 'opt-125m'  # ['gpt2', 'opt-125m', 'opt-350m', 'qlora'] "Model type selected in the list"
+  max_seq_length: 1024  # Set it to an amount that fits in your GPU ram
   json: False  # "Whether to use json for the training dataset."
   json_nb_train_recipes: 100000  # "Number of recipes to use for the training dataset in json."
   per_gpu_train_batch_size: 2  # "Batch size per GPU/CPU for training. (from paper, gpt-2 was 4)"

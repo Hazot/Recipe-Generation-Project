@@ -9,6 +9,7 @@ processing. The project is targeted towards users who are interested in cooking
 and want help in generating recipes based on a list of ingredients as an input.
 
 ## TODOs
+- reorganize the code to have a better structure, it sucks
 - add the sequence length of the tokenized dataset in the h5 file name.
 - finetune llama3.1 8b using some kind of lora.
 - implement some RAG in there
